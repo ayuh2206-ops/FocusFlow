@@ -106,7 +106,7 @@
             console.error("Firebase Init Failed:", e);
         }
 
-        // 3. ICONS (FIXED LOGOUT ICON HERE)
+        // 3. ICONS
         const Icon = ({ name, size = 20, className = "" }) => {
             const icons = {
                 check: <path d="M20 6L9 17l-5-5" />,
@@ -119,7 +119,6 @@
                 x: <g><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></g>,
                 grip: <g><circle cx="9" cy="12" r="1" /><circle cx="9" cy="5" r="1" /><circle cx="9" cy="19" r="1" /><circle cx="15" cy="12" r="1" /><circle cx="15" cy="5" r="1" /><circle cx="15" cy="19" r="1" /></g>,
                 google: <path d="M12 22C6.477 22 2 17.523 2 12S6.477 2 12 2s10 4.477 10 10-4.477 10-10 10zm-1.2-4.5v-3.3h5.5c.1.5.1 1.1.1 1.7 0 3.3-2.2 5.7-5.6 5.7-3.2 0-5.9-2.6-5.9-5.9s2.6-5.9 5.9-5.9c1.6 0 3 1.2 3.6 1.8l-2.4 2.3c-.4-.4-1-.9-1.2-.9-1.5 0-2.7 1.2-2.7 2.7s1.2 2.7 2.7 2.7c1.7 0 2.4-1.2 2.5-1.9h-2.5z" fill="currentColor" />,
-                // Fixed: Wrapped logout icon in <g> tag
                 logout: <g><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" /><polyline points="16 17 21 12 16 7" /><line x1="21" y1="12" x2="9" y2="12" /></g>
             };
 
@@ -159,7 +158,6 @@
 
             // Data Sync
             useEffect(() => {
-                // A. FIREBASE MODE
                 if (isFirebaseEnabled && user && db) {
                     setIsLoading(true);
                     const unsubscribe = db.collection('users')
@@ -186,8 +184,6 @@
 
                     return () => unsubscribe();
                 } 
-                
-                // B. GUEST MODE (LocalStorage)
                 else if (!user) {
                     try {
                         const savedTodos = localStorage.getItem('focusflow_todos');
@@ -199,7 +195,7 @@
                         if (savedBg) setBgImage(savedBg);
                     } catch (e) {
                         console.error("Local Storage Error", e);
-                        setTodos([]); // Reset if corrupted
+                        setTodos([]); 
                     }
                     setIsLoading(false);
                 }
@@ -247,12 +243,14 @@
                     createdAt: Date.now()
                 };
 
+                // --- FIX 1: Clear input immediately (Optimistic UI) ---
+                setInputValue(""); 
+
                 if (user && isFirebaseEnabled && db) {
                     await db.collection('users').doc(user.uid).collection('todos').add(newTodo);
                 } else {
                     setTodos([{ id: Date.now(), ...newTodo }, ...todos]);
                 }
-                setInputValue("");
             };
 
             const toggleComplete = async (todo) => {
@@ -276,14 +274,18 @@
             const saveEdit = async () => {
                 if (!editValue.trim()) { setEditingId(null); return; }
                 
+                // --- FIX 2: Close Edit Mode Immediately (Optimistic UI) ---
+                const tempId = editingId;
+                const tempVal = editValue.trim();
+                setEditingId(null); 
+
                 if (user && isFirebaseEnabled && db) {
-                    await db.collection('users').doc(user.uid).collection('todos').doc(editingId).update({
-                        text: editValue.trim()
+                    await db.collection('users').doc(user.uid).collection('todos').doc(tempId).update({
+                        text: tempVal
                     });
                 } else {
-                    setTodos(todos.map(t => t.id === editingId ? { ...t, text: editValue.trim() } : t));
+                    setTodos(todos.map(t => t.id === tempId ? { ...t, text: tempVal } : t));
                 }
-                setEditingId(null);
             };
 
             const handleBgUpdate = async (url) => {
@@ -353,12 +355,8 @@
                                     </p>
                                 </div>
                                 
-                                {/* Controls */}
                                 <div className="flex gap-2 items-center">
-                                    <button 
-                                        onClick={() => setShowBgInput(!showBgInput)}
-                                        className="bg-white/50 hover:bg-white/80 p-2.5 rounded-full transition-all text-gray-700 backdrop-blur-sm shadow-sm"
-                                    >
+                                    <button onClick={() => setShowBgInput(!showBgInput)} className="bg-white/50 hover:bg-white/80 p-2.5 rounded-full transition-all text-gray-700 backdrop-blur-sm shadow-sm">
                                         <Icon name="image" size={18} />
                                     </button>
 
@@ -373,10 +371,7 @@
                                             </button>
                                         </div>
                                     ) : (
-                                        <button 
-                                            onClick={login}
-                                            className="flex items-center gap-2 bg-white hover:bg-gray-50 text-gray-700 px-4 py-2 rounded-full font-semibold text-sm shadow-md transition-all transform hover:scale-105"
-                                        >
+                                        <button onClick={login} className="flex items-center gap-2 bg-white hover:bg-gray-50 text-gray-700 px-4 py-2 rounded-full font-semibold text-sm shadow-md transition-all transform hover:scale-105">
                                             <div className="text-indigo-600"><Icon name="google" size={16} /></div>
                                             Sign In
                                         </button>
@@ -384,67 +379,34 @@
                                 </div>
                             </div>
 
-                            {/* Wallpaper Input */}
                             {showBgInput && (
                                 <form onSubmit={(e) => { e.preventDefault(); handleBgUpdate(bgInputValue); setShowBgInput(false); }} className="mb-4 animate-fade-in bg-white/80 p-3 rounded-xl shadow-lg flex gap-2 items-center border border-white/60">
-                                    <input 
-                                        type="text" 
-                                        placeholder="Paste image URL here..." 
-                                        className="flex-1 bg-transparent border-none text-sm text-gray-800 placeholder-gray-500 focus:ring-0 p-1"
-                                        value={bgInputValue}
-                                        onChange={(e) => setBgInputValue(e.target.value)}
-                                        autoFocus
-                                    />
+                                    <input type="text" placeholder="Paste image URL here..." className="flex-1 bg-transparent border-none text-sm text-gray-800 placeholder-gray-500 focus:ring-0 p-1" value={bgInputValue} onChange={(e) => setBgInputValue(e.target.value)} autoFocus />
                                     <button type="submit" className="text-xs bg-indigo-600 text-white px-3 py-1.5 rounded-lg font-medium hover:bg-indigo-700 transition">Set</button>
                                     <button type="button" onClick={() => setShowBgInput(false)} className="text-gray-500 hover:text-gray-800 p-1"><Icon name="x" size={16} /></button>
                                 </form>
                             )}
 
-                            {/* Stats */}
                             <div className="w-full bg-white/40 rounded-full h-1.5 mb-6 overflow-hidden">
-                                <div 
-                                    className="bg-indigo-600 h-full rounded-full transition-all duration-700 shadow-[0_0_10px_rgba(79,70,229,0.5)]"
-                                    style={{ width: `${stats.total === 0 ? 0 : (stats.completed / stats.total) * 100}%` }}
-                                ></div>
+                                <div className="bg-indigo-600 h-full rounded-full transition-all duration-700 shadow-[0_0_10px_rgba(79,70,229,0.5)]" style={{ width: `${stats.total === 0 ? 0 : (stats.completed / stats.total) * 100}%` }}></div>
                             </div>
 
-                            {/* Main Input */}
                             <form onSubmit={addTodo} className="relative group">
-                                <input
-                                    type="text"
-                                    placeholder={user ? "Add a task to cloud..." : "Add a local task..."}
-                                    className="w-full pl-5 pr-14 py-4 glass-input rounded-2xl text-gray-800 placeholder-gray-500 outline-none transition-all shadow-inner text-lg"
-                                    value={inputValue}
-                                    onChange={(e) => setInputValue(e.target.value)}
-                                />
-                                <button 
-                                    type="submit"
-                                    disabled={!inputValue.trim()}
-                                    className="absolute right-2 top-2 bottom-2 aspect-square bg-indigo-600 hover:bg-indigo-700 disabled:opacity-0 text-white rounded-xl flex items-center justify-center transition-all shadow-lg shadow-indigo-500/30 transform hover:scale-105 active:scale-95"
-                                >
+                                <input type="text" placeholder={user ? "Add a task to cloud..." : "Add a local task..."} className="w-full pl-5 pr-14 py-4 glass-input rounded-2xl text-gray-800 placeholder-gray-500 outline-none transition-all shadow-inner text-lg" value={inputValue} onChange={(e) => setInputValue(e.target.value)} />
+                                <button type="submit" disabled={!inputValue.trim()} className="absolute right-2 top-2 bottom-2 aspect-square bg-indigo-600 hover:bg-indigo-700 disabled:opacity-0 text-white rounded-xl flex items-center justify-center transition-all shadow-lg shadow-indigo-500/30 transform hover:scale-105 active:scale-95">
                                     <Icon name="plus" size={22} />
                                 </button>
                             </form>
                         </div>
 
-                        {/* Filters */}
                         <div className="flex border-b border-white/30 px-8 bg-white/20 backdrop-blur-md">
                             {['all', 'active', 'completed'].map((f) => (
-                                <button
-                                    key={f}
-                                    onClick={() => setFilter(f)}
-                                    className={`py-4 px-4 font-medium text-sm border-b-2 transition-all capitalize tracking-wide ${
-                                        filter === f 
-                                            ? 'border-indigo-600 text-indigo-800' 
-                                            : 'border-transparent text-gray-600 hover:text-gray-900 hover:bg-white/20'
-                                    }`}
-                                >
+                                <button key={f} onClick={() => setFilter(f)} className={`py-4 px-4 font-medium text-sm border-b-2 transition-all capitalize tracking-wide ${filter === f ? 'border-indigo-600 text-indigo-800' : 'border-transparent text-gray-600 hover:text-gray-900 hover:bg-white/20'}`}>
                                     {f} <span className={`ml-1 text-[10px] px-1.5 py-0.5 rounded-full ${filter === f ? 'bg-indigo-100 text-indigo-700' : 'bg-white/40 text-gray-600'}`}>{f === 'all' ? stats.total : f === 'active' ? stats.active : stats.completed}</span>
                                 </button>
                             ))}
                         </div>
 
-                        {/* Task List */}
                         <div className="flex-1 overflow-y-auto p-6 space-y-3 custom-scrollbar relative">
                             {isLoading ? (
                                 <div className="absolute inset-0 flex items-center justify-center bg-white/20 backdrop-blur-sm z-20">
@@ -461,35 +423,22 @@
                                 filteredTodos.map((todo, index) => (
                                     <div 
                                         key={todo.id}
-                                        draggable={filter === 'all' && !user} // Drag only in local mode for now
+                                        // --- FIX 3: Enable Drag & Drop (Removed !user check) ---
+                                        draggable={filter === 'all'} 
                                         onDragStart={() => handleDragStart(index)}
                                         onDragEnter={(e) => handleDragEnter(e, index)}
                                         onDragEnd={handleDragEnd}
                                         onDragOver={(e) => e.preventDefault()}
                                         className={`group glass-item p-4 rounded-2xl shadow-sm transition-all flex items-center gap-4 ${draggedItemIndex === index ? 'opacity-40 border-dashed border-indigo-400' : ''}`}
                                     >
-                                        <button
-                                            onClick={() => toggleComplete(todo)}
-                                            className={`flex-shrink-0 w-6 h-6 rounded-full border-2 flex items-center justify-center transition-all duration-300 ${
-                                                todo.completed 
-                                                    ? 'bg-green-500 border-green-500 text-white shadow-[0_0_10px_rgba(34,197,94,0.4)]' 
-                                                    : 'border-gray-400 text-transparent hover:border-indigo-500 bg-white/40'
-                                            }`}
-                                        >
+                                        <button onClick={() => toggleComplete(todo)} className={`flex-shrink-0 w-6 h-6 rounded-full border-2 flex items-center justify-center transition-all duration-300 ${todo.completed ? 'bg-green-500 border-green-500 text-white shadow-[0_0_10px_rgba(34,197,94,0.4)]' : 'border-gray-400 text-transparent hover:border-indigo-500 bg-white/40'}`}>
                                             <Icon name="check" size={14} />
                                         </button>
 
                                         <div className="flex-1 min-w-0">
                                             {editingId === todo.id ? (
                                                 <div className="flex items-center gap-2 animate-fade-in">
-                                                    <input 
-                                                        type="text" 
-                                                        value={editValue}
-                                                        onChange={(e) => setEditValue(e.target.value)}
-                                                        onKeyDown={(e) => { if(e.key === 'Enter') saveEdit(); if(e.key === 'Escape') setEditingId(null); }}
-                                                        autoFocus
-                                                        className="w-full px-3 py-1.5 bg-white/80 border border-indigo-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 text-gray-800"
-                                                    />
+                                                    <input type="text" value={editValue} onChange={(e) => setEditValue(e.target.value)} onKeyDown={(e) => { if(e.key === 'Enter') saveEdit(); if(e.key === 'Escape') setEditingId(null); }} autoFocus className="w-full px-3 py-1.5 bg-white/80 border border-indigo-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 text-gray-800" />
                                                     <button onClick={saveEdit} className="text-green-600 bg-white/80 hover:bg-green-50 p-1.5 rounded-lg shadow-sm"><Icon name="save" size={18} /></button>
                                                 </div>
                                             ) : (
@@ -502,6 +451,12 @@
                                         </div>
 
                                         <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-all scale-95 group-hover:scale-100">
+                                            {/* Add Drag Grip Icon */}
+                                            {filter === 'all' && (
+                                                <div className="cursor-grab text-gray-400 hover:text-gray-600 opacity-0 group-hover:opacity-100 transition-opacity mr-1">
+                                                    <Icon name="grip" size={14} />
+                                                </div>
+                                            )}
                                             <button onClick={() => { setEditingId(todo.id); setEditValue(todo.text); }} className="p-2 text-gray-500 hover:text-indigo-600 hover:bg-white/60 rounded-lg transition-colors"><Icon name="edit" size={18} /></button>
                                             <button onClick={() => deleteTodo(todo.id)} className="p-2 text-gray-500 hover:text-red-600 hover:bg-red-50/50 rounded-lg transition-colors"><Icon name="trash" size={18} /></button>
                                         </div>
