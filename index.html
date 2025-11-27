@@ -341,9 +341,14 @@ Signed: __________________________`;
             const printAgreement = () => window.print();
 
             if (!user) return (
-                <div className="min-h-screen flex items-center justify-center bg-gray-900 bg-cover bg-center transition-all duration-700" style={{backgroundImage: `url('${settings.bgImage}')`}}>
-                    <div className="absolute inset-0 bg-black/50 backdrop-blur-md"></div>
-                    <div className="relative glass-panel p-10 rounded-2xl text-center max-w-md w-full">
+                <div className="min-h-screen flex items-center justify-center bg-gray-900 bg-cover bg-center transition-all duration-700">
+                    {/* Fixed: Moved BG image to a fixed div to act as true wallpaper */}
+                    <div className="fixed inset-0 z-0">
+                        <img src={settings.bgImage} className="w-full h-full object-cover" alt="Background" />
+                        <div className="absolute inset-0 bg-black/50 backdrop-blur-md"></div>
+                    </div>
+                    
+                    <div className="relative z-10 glass-panel p-10 rounded-2xl text-center max-w-md w-full">
                         <h1 className="text-3xl font-bold mb-2">FocusFlow</h1>
                         <p className="text-sm opacity-80 mb-6">Production Management Suite</p>
                         <button onClick={login} className="bg-white text-black px-6 py-3 rounded-xl font-bold shadow-lg hover:scale-105 transition flex items-center justify-center gap-2 w-full">
@@ -354,8 +359,13 @@ Signed: __________________________`;
             );
 
             return (
-                <div className="min-h-screen flex text-gray-800 font-sans overflow-hidden bg-cover bg-center transition-all duration-700" style={{backgroundImage: `url('${settings.bgImage}')`}}>
-                    <div className="absolute inset-0 bg-black/20"></div>
+                /* Fixed: Changed from min-h-screen to h-screen for fixed viewport height */
+                <div className="h-screen w-full flex text-gray-800 font-sans overflow-hidden bg-cover bg-center transition-all duration-700 relative">
+                    {/* Fixed: Wallpaper as separate fixed layer */}
+                    <div className="fixed inset-0 z-0">
+                        <img src={settings.bgImage} className="w-full h-full object-cover" alt="Background" />
+                        <div className="absolute inset-0 bg-black/20"></div>
+                    </div>
                     
                     {/* LEFT SIDEBAR */}
                     <div className="w-64 glass-sidebar flex flex-col z-10 shadow-2xl relative text-white">
