@@ -93,6 +93,9 @@
         input, select, textarea { background: transparent !important; transition: all 0.2s; }
         input:focus, select:focus, textarea:focus { outline: none; }
         input::placeholder { color: rgba(0,0,0,0.4); }
+        
+        /* Ensure textarea resize is visible */
+        textarea { resize: vertical; min-height: 60px; }
 
         @media print {
             body * { visibility: hidden; }
@@ -106,7 +109,6 @@
 
     <script type="text/babel">
         const { useState, useEffect, useRef } = React;
-        const { PDFDocument, rgb } = PDFLib;
 
         // --- FIREBASE CONFIG ---
         const firebaseConfig = {
@@ -250,13 +252,22 @@ Signed: __________________________`;
                             </div>
                         </div>
                         <div className="grid grid-cols-2 gap-4">
-                            <div className="flex items-center gap-2 bg-white/40 p-1.5 rounded-lg border border-white/20 focus-within:border-indigo-300 transition-colors">
-                                <Icon name="link" size={12} className="text-gray-400" />
+                            {/* Reference Link */}
+                            <div className="flex items-center gap-2 bg-white/40 p-2 rounded-lg border border-white/20 focus-within:border-indigo-300 transition-colors h-10">
+                                <Icon name="link" size={14} className="text-gray-400" />
                                 <input type="text" placeholder="Reference link..." value={block.link} onChange={(e) => updateBlock(block.id, 'link', e.target.value)} className="text-xs w-full text-blue-700" />
                             </div>
-                            <div className="flex items-center gap-2 bg-white/40 p-1.5 rounded-lg border border-white/20 focus-within:border-indigo-300 transition-colors">
-                                <Icon name="fileText" size={12} className="text-gray-400" />
-                                <input type="text" placeholder="Notes..." value={block.notes} onChange={(e) => updateBlock(block.id, 'notes', e.target.value)} className="text-xs w-full text-gray-700" />
+                            
+                            {/* Improved Description Textarea */}
+                            <div className="flex items-start gap-2 bg-white/40 p-2 rounded-lg border border-white/20 focus-within:border-indigo-300 transition-colors">
+                                <Icon name="fileText" size={14} className="text-gray-500 mt-0.5" />
+                                <textarea 
+                                    placeholder="Description / Bullet points..." 
+                                    value={block.notes} 
+                                    onChange={(e) => updateBlock(block.id, 'notes', e.target.value)} 
+                                    className="text-xs w-full text-gray-900 bg-transparent resize-y focus:outline-none leading-relaxed"
+                                    rows={3}
+                                />
                             </div>
                         </div>
                     </div>
@@ -435,55 +446,40 @@ Signed: __________________________`;
                 if (!settings.agreementPdfUrl) {
                     return alert("Please upload an Agreement PDF template in Settings first.");
                 }
+                if (typeof PDFLib === 'undefined') {
+                    return alert("PDF Library not loaded. Please refresh the page.");
+                }
                 try {
+                    const { PDFDocument, rgb } = PDFLib;
                     const existingPdfBytes = await fetch(settings.agreementPdfUrl).then(res => res.arrayBuffer());
                     const pdfDoc = await PDFDocument.load(existingPdfBytes);
                     const pages = pdfDoc.getPages();
                     
-                    // Configuration for placement (defaults to user request if not set)
                     const conf = settings.pdfConfig || { namePage: 0, nameX: 100, nameY: 350, servicesPage: 4, servicesX: 50, servicesY: 600, pricePage: 4, priceX: 50, priceY: 500 };
                     
-                    // Page 1: Client Name
+                    // Safe replacements
                     if(pages[conf.namePage]) {
-                        pages[conf.namePage].drawText(activeProject.name || "Client", {
-                            x: parseInt(conf.nameX),
-                            y: parseInt(conf.nameY),
-                            size: 24,
-                            color: rgb(0, 0, 0),
-                        });
+                        pages[conf.namePage].drawText(activeProject?.name || "Client", { x: parseInt(conf.nameX), y: parseInt(conf.nameY), size: 24, color: rgb(0, 0, 0) });
                     }
 
-                    // Page 5: Services and Price
                     if(pages[conf.servicesPage]) {
-                        // Draw Services List
                         let yOffset = 0;
-                        activeProject.blocks.forEach(block => {
+                        (activeProject?.blocks || []).forEach(block => {
                             const text = `• ${block.title} (${block.selectedLevel || 'Standard'}) - ₹${block.price}`;
-                            pages[conf.servicesPage].drawText(text, {
-                                x: parseInt(conf.servicesX),
-                                y: parseInt(conf.servicesY) - yOffset,
-                                size: 12,
-                                color: rgb(0, 0, 0),
-                            });
+                            pages[conf.servicesPage].drawText(text, { x: parseInt(conf.servicesX), y: parseInt(conf.servicesY) - yOffset, size: 12, color: rgb(0, 0, 0) });
                             yOffset += 20;
                         });
                     }
 
-                    // Price Page
                     if(pages[conf.pricePage]) {
-                         pages[conf.pricePage].drawText(`Total Estimate: ₹${totalEstimate.toLocaleString('en-IN')}`, {
-                            x: parseInt(conf.priceX),
-                            y: parseInt(conf.priceY),
-                            size: 18,
-                            color: rgb(0, 0, 0),
-                        });
+                         pages[conf.pricePage].drawText(`Total Estimate: ₹${totalEstimate.toLocaleString('en-IN')}`, { x: parseInt(conf.priceX), y: parseInt(conf.priceY), size: 18, color: rgb(0, 0, 0) });
                     }
 
                     const pdfBytes = await pdfDoc.save();
-                    download(pdfBytes, `${activeProject.name}_Agreement.pdf`, "application/pdf");
+                    download(pdfBytes, `${activeProject?.name || 'Project'}_Agreement.pdf`, "application/pdf");
                 } catch (error) {
                     console.error("PDF Gen Error:", error);
-                    alert("Failed to generate PDF. Ensure the uploaded template is valid.");
+                    alert("Failed to generate PDF. " + error.message);
                 }
             };
 
@@ -674,6 +670,9 @@ Signed: __________________________`;
                                             <input type="number" placeholder="Pg Svc" value={settings.pdfConfig?.servicesPage || 4} onChange={(e) => updateSettings({...settings, pdfConfig: {...settings.pdfConfig, servicesPage: parseInt(e.target.value)}})} className="border p-1 rounded" />
                                             <input type="number" placeholder="X Svc" value={settings.pdfConfig?.servicesX || 50} onChange={(e) => updateSettings({...settings, pdfConfig: {...settings.pdfConfig, servicesX: parseInt(e.target.value)}})} className="border p-1 rounded" />
                                             <input type="number" placeholder="Y Svc" value={settings.pdfConfig?.servicesY || 600} onChange={(e) => updateSettings({...settings, pdfConfig: {...settings.pdfConfig, servicesY: parseInt(e.target.value)}})} className="border p-1 rounded" />
+                                            <input type="number" placeholder="Pg Pr" value={settings.pdfConfig?.pricePage || 4} onChange={(e) => updateSettings({...settings, pdfConfig: {...settings.pdfConfig, pricePage: parseInt(e.target.value)}})} className="border p-1 rounded" />
+                                            <input type="number" placeholder="X Pr" value={settings.pdfConfig?.priceX || 50} onChange={(e) => updateSettings({...settings, pdfConfig: {...settings.pdfConfig, priceX: parseInt(e.target.value)}})} className="border p-1 rounded" />
+                                            <input type="number" placeholder="Y Pr" value={settings.pdfConfig?.priceY || 500} onChange={(e) => updateSettings({...settings, pdfConfig: {...settings.pdfConfig, priceY: parseInt(e.target.value)}})} className="border p-1 rounded" />
                                         </div>
                                     </div>
 
@@ -698,9 +697,9 @@ Signed: __________________________`;
                                                 <h2 className="font-bold text-xl uppercase tracking-widest">{settings.companyName}</h2>
                                             </div>
                                             <div className="prose prose-sm max-w-none font-serif whitespace-pre-wrap leading-relaxed">
-                                                {settings.agreementText
+                                                {(settings.agreementText || defaultAgreement)
                                                     .replace('[Company Name]', settings.companyName)
-                                                    .replace('[Client Name]', activeProject.name) 
+                                                    .replace('[Client Name]', activeProject ? activeProject.name : "Client") 
                                                     .replace('[Total Price]', `₹${totalEstimate.toLocaleString('en-IN')}`)
                                                     .replace('[Date]', new Date().toLocaleDateString())
                                                 }
@@ -708,7 +707,7 @@ Signed: __________________________`;
                                             <div className="mt-12 pt-8 border-t border-gray-300">
                                                 <h3 className="font-bold mb-4">Project Summary</h3>
                                                 <ul className="list-disc pl-5 text-sm space-y-1">
-                                                    {activeProject.blocks.map(b => (
+                                                    {(activeProject ? activeProject.blocks : []).map(b => (
                                                         <li key={b.id}>{b.title} <span className="text-gray-500">({b.notes || b.type})</span> - <b>₹{parseFloat(b.price).toLocaleString('en-IN')}</b></li>
                                                     ))}
                                                 </ul>
@@ -738,7 +737,7 @@ Signed: __________________________`;
                                             </div>
                                             <table className="w-full text-left text-sm">
                                                 <thead><tr className="border-b text-gray-400 text-xs uppercase"><th className="pb-2">Item</th><th className="pb-2 text-right">Price</th></tr></thead>
-                                                <tbody>{activeProject.blocks.map(b => (<tr key={b.id}><td className="py-3 border-b border-gray-100"><p className="font-bold">{b.title}</p><p className="text-gray-400 text-xs">{b.notes}</p></td><td className="py-3 border-b border-gray-100 text-right font-mono">₹{parseFloat(b.price||0).toLocaleString('en-IN')}</td></tr>))}</tbody>
+                                                <tbody>{activeProject && activeProject.blocks && activeProject.blocks.map(b => (<tr key={b.id}><td className="py-3 border-b border-gray-100"><p className="font-bold">{b.title}</p><p className="text-gray-400 text-xs">{b.notes}</p></td><td className="py-3 border-b border-gray-100 text-right font-mono">₹{parseFloat(b.price||0).toLocaleString('en-IN')}</td></tr>))}</tbody>
                                             </table>
                                         </div>
                                         <div className="bg-gray-50 p-8 border-t border-gray-100 flex justify-between items-center">
