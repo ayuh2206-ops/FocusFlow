@@ -545,9 +545,20 @@ Signed: __________________________`;
             const handleLogoUpload = (event) => {
                 const file = event.target.files[0];
                 if (!file) return;
-                if (file.size > 500000) return alert("Image too large! Max 500KB.");
+                if (file.size > 500000) { 
+                    alert("Image too large! Max 500KB.");
+                    // Reset file input so user can try again
+                    if(fileInputRef.current) fileInputRef.current.value = "";
+                    return;
+                }
                 const reader = new FileReader();
-                reader.onloadend = () => updateSettings({ ...settings, logoUrl: reader.result });
+                reader.onloadend = () => {
+                    try {
+                        updateSettings({ ...settings, logoUrl: reader.result });
+                    } catch (e) {
+                        alert("Failed to process image.");
+                    }
+                };
                 reader.readAsDataURL(file);
             };
 
@@ -845,11 +856,6 @@ Signed: __________________________`;
                                         <Icon name="fileText" size={16} /> Client View
                                     </button>
                                 )}
-                                {activeProject && (
-                                    <button onClick={() => deleteProject(activeProject.id)} className="text-white/50 hover:text-red-400 p-2 transition-colors" title="Delete Project">
-                                        <Icon name="trash" size={18} />
-                                    </button>
-                                )}
                             </div>
                         </header>
 
@@ -968,30 +974,8 @@ Signed: __________________________`;
                                     </div>
                                     <div><label className="text-xs font-bold uppercase block mb-1">Wallpaper URL</label><input type="text" value={settings.bgImage} onChange={(e) => updateSettings({...settings, bgImage: e.target.value})} className="w-full p-2 border rounded-lg bg-white/50" /></div>
                                     
-                                    {/* PDF UPLOAD SECTION */}
-                                    <div className="border-t pt-4">
-                                        <h4 className="text-sm font-bold text-indigo-600 mb-2">Agreement PDF Template</h4>
-                                        <div className="flex gap-2 mb-2">
-                                            <button onClick={() => pdfInputRef.current.click()} className="flex-1 p-2 border border-dashed rounded-lg bg-gray-50 hover:bg-gray-100 text-sm text-gray-500 flex items-center justify-center gap-2"><Icon name="upload" size={14} /> Upload PDF</button>
-                                            <input type="file" ref={pdfInputRef} onChange={handlePdfUpload} accept="application/pdf" className="hidden" />
-                                        </div>
-                                        <p className="text-[10px] text-gray-400 mb-3">Upload your onboarding PDF (Max 1MB). Text will be overlaid.</p>
-                                        
-                                        <label className="text-xs font-bold uppercase block mb-1">Coordinates Config</label>
-                                        <div className="grid grid-cols-3 gap-2 text-xs">
-                                            <input type="number" placeholder="Pg Name" value={settings.pdfConfig?.namePage || 0} onChange={(e) => updateSettings({...settings, pdfConfig: {...settings.pdfConfig, namePage: parseInt(e.target.value)}})} className="border p-1 rounded" />
-                                            <input type="number" placeholder="X Name" value={settings.pdfConfig?.nameX || 100} onChange={(e) => updateSettings({...settings, pdfConfig: {...settings.pdfConfig, nameX: parseInt(e.target.value)}})} className="border p-1 rounded" />
-                                            <input type="number" placeholder="Y Name" value={settings.pdfConfig?.nameY || 350} onChange={(e) => updateSettings({...settings, pdfConfig: {...settings.pdfConfig, nameY: parseInt(e.target.value)}})} className="border p-1 rounded" />
-                                            
-                                            <input type="number" placeholder="Pg Svc" value={settings.pdfConfig?.servicesPage || 4} onChange={(e) => updateSettings({...settings, pdfConfig: {...settings.pdfConfig, servicesPage: parseInt(e.target.value)}})} className="border p-1 rounded" />
-                                            <input type="number" placeholder="X Svc" value={settings.pdfConfig?.servicesX || 50} onChange={(e) => updateSettings({...settings, pdfConfig: {...settings.pdfConfig, servicesX: parseInt(e.target.value)}})} className="border p-1 rounded" />
-                                            <input type="number" placeholder="Y Svc" value={settings.pdfConfig?.servicesY || 600} onChange={(e) => updateSettings({...settings, pdfConfig: {...settings.pdfConfig, servicesY: parseInt(e.target.value)}})} className="border p-1 rounded" />
-                                            <input type="number" placeholder="Pg Pr" value={settings.pdfConfig?.pricePage || 4} onChange={(e) => updateSettings({...settings, pdfConfig: {...settings.pdfConfig, pricePage: parseInt(e.target.value)}})} className="border p-1 rounded" />
-                                            <input type="number" placeholder="X Pr" value={settings.pdfConfig?.priceX || 50} onChange={(e) => updateSettings({...settings, pdfConfig: {...settings.pdfConfig, priceX: parseInt(e.target.value)}})} className="border p-1 rounded" />
-                                            <input type="number" placeholder="Y Pr" value={settings.pdfConfig?.priceY || 500} onChange={(e) => updateSettings({...settings, pdfConfig: {...settings.pdfConfig, priceY: parseInt(e.target.value)}})} className="border p-1 rounded" />
-                                        </div>
-                                    </div>
-
+                                    {/* PDF UPLOAD SECTION REMOVED: Using Auto-Generate */}
+                                    
                                     <div className="flex justify-between pt-4 border-t mt-4">
                                         <button onClick={logout} className="text-red-500 text-sm font-medium hover:underline">Sign Out</button>
                                         <button onClick={() => setShowSettings(false)} className="bg-indigo-600 text-white px-4 py-2 rounded-lg text-sm font-bold shadow-lg hover:bg-indigo-700">Done</button>
