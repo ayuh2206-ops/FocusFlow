@@ -9,16 +9,15 @@
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js" crossorigin></script>
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
     
-    <!-- PDF Lib for Agreement Generation -->
+    <!-- PDF Lib -->
     <script src="https://unpkg.com/pdf-lib@1.17.1/dist/pdf-lib.min.js"></script>
     <script src="https://unpkg.com/downloadjs@1.4.7/download.min.js"></script>
     
-    <!-- Firebase SDKs -->
+    <!-- Firebase -->
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
 
-    <!-- Google Fonts -->
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
         @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&display=swap');
@@ -28,25 +27,23 @@
         /* Ultra Glass Theme */
         .glass-panel { 
             background: rgba(255, 255, 255, 0.15); 
-            backdrop-filter: blur(15px); 
-            -webkit-backdrop-filter: blur(15px); 
+            backdrop-filter: blur(25px); 
+            -webkit-backdrop-filter: blur(25px); 
             border: 1px solid rgba(255, 255, 255, 0.15); 
             box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.2); 
         }
-        
         .glass-sidebar {
             background: rgba(10, 10, 10, 0.25);
             backdrop-filter: blur(12px);
             border-right: 1px solid rgba(255, 255, 255, 0.08);
         }
-        
         .glass-header {
             background: rgba(255, 255, 255, 0.05);
             backdrop-filter: blur(10px);
             border-bottom: 1px solid rgba(255, 255, 255, 0.1);
         }
 
-        /* Draggable Cards */
+        /* Block Cards */
         .block-card { 
             transition: transform 0.2s cubic-bezier(0.25, 0.46, 0.45, 0.94), background 0.2s;
             border-left: 4px solid transparent;
@@ -56,7 +53,6 @@
             color: #1f2937;
         }
         .block-card:hover { 
-            transform: translateY(-2px); 
             background: rgba(255, 255, 255, 0.85);
             box-shadow: 0 10px 20px rgba(0,0,0,0.1);
         }
@@ -70,16 +66,6 @@
         .block-type-material { border-left-color: #ea580c; } 
         .block-type-milestone { border-left-color: #16a34a; } 
 
-        /* Custom Dropdown */
-        .custom-dropdown-menu {
-            animation: scaleIn 0.15s ease-out forwards;
-            transform-origin: top right;
-        }
-        @keyframes scaleIn {
-            from { opacity: 0; transform: scale(0.95); }
-            to { opacity: 1; transform: scale(1); }
-        }
-
         /* Scrollbar */
         .custom-scrollbar::-webkit-scrollbar { width: 8px; }
         .custom-scrollbar::-webkit-scrollbar-track { background: rgba(0,0,0,0.05); }
@@ -89,12 +75,9 @@
         .animate-fade-in { animation: fadeIn 0.3s ease-out; }
         @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
         
-        /* Inputs */
         input, select, textarea { background: transparent !important; transition: all 0.2s; }
         input:focus, select:focus, textarea:focus { outline: none; }
         input::placeholder { color: rgba(0,0,0,0.4); }
-        
-        /* Ensure textarea resize is visible */
         textarea { resize: vertical; min-height: 60px; }
 
         @media print {
@@ -110,7 +93,6 @@
     <script type="text/babel">
         const { useState, useEffect, useRef } = React;
 
-        // --- FIREBASE CONFIG ---
         const firebaseConfig = {
             apiKey: "AIzaSyCuQLeXXVYEgG9TJ1XR_FvlD1ABqsgEXX4",
             authDomain: "focus-flow-512ee.firebaseapp.com",
@@ -131,7 +113,6 @@
             }
         } catch (e) { console.error("Firebase Init Failed:", e); }
 
-        // --- ICONS ---
         const Icon = ({ name, size = 18, className = "" }) => {
             const icons = {
                 box: <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z" />,
@@ -142,16 +123,15 @@
                 check: <path d="M20 6L9 17l-5-5" />,
                 link: <g><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71" /><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71" /></g>,
                 fileText: <g><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" /><polyline points="14 2 14 8 20 8" /><line x1="16" y1="13" x2="8" y2="13" /><line x1="16" y1="17" x2="8" y2="17" /><polyline points="10 9 9 9 8 9" /></g>,
-                logOut: <g><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" /><polyline points="16 17 21 12 16 7" /><line x1="21" y1="12" x2="9" y2="12" /></g>,
-                chevronRight: <polyline points="9 18 15 12 9 6" />,
                 chevronDown: <polyline points="6 9 12 15 18 9" />,
-                image: <g><rect x="3" y="3" width="18" height="18" rx="2" ry="2" /><circle cx="8.5" cy="8.5" r="1.5" /><polyline points="21 15 16 10 5 21" /></g>,
-                x: <g><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></g>,
                 grip: <g><circle cx="9" cy="12" r="1" /><circle cx="9" cy="5" r="1" /><circle cx="9" cy="19" r="1" /><circle cx="15" cy="12" r="1" /><circle cx="15" cy="5" r="1" /><circle cx="15" cy="19" r="1" /></g>,
                 upload: <g><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><polyline points="17 8 12 3 7 8" /><line x1="12" y1="3" x2="12" y2="15" /></g>,
                 print: <g><polyline points="6 9 6 2 18 2 18 9" /><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2" /><rect x="6" y="14" width="12" height="8" /></g>,
                 edit: <g><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" /><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" /></g>,
-                pdf: <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+                download: <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><polyline points="7 10 12 15 17 10" /><line x1="12" y1="15" x2="12" y2="3" />,
+                calendar: <rect x="3" y="4" width="18" height="18" rx="2" ry="2" />,
+                lock: <rect x="3" y="11" width="18" height="11" rx="2" ry="2" /><path d="M7 11V7a5 5 0 0 1 10 0v4" />,
+                unlock: <rect x="3" y="11" width="18" height="11" rx="2" ry="2" /><path d="M7 11V7a5 5 0 0 1 9.9-1" />
             };
             return <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>{icons[name]}</svg>;
         };
@@ -169,14 +149,13 @@ Total Estimated Cost: [Total Price]
 Payment terms: 50% upfront, 50% upon completion.
 
 3. TIMELINE
+Expected Delivery Date: [Delivery Date]
 Services will be delivered according to the milestones defined in the project scope.
 
 Date: [Date]
 Signed: __________________________`;
 
-        // --- SUB-COMPONENTS ---
-
-        const CustomSelect = ({ value, options, onChange }) => {
+        const CustomSelect = ({ value, options, onChange, disabled }) => {
             const [isOpen, setIsOpen] = useState(false);
             const ref = useRef(null);
 
@@ -191,13 +170,14 @@ Signed: __________________________`;
             return (
                 <div className="relative" ref={ref}>
                     <button 
-                        onClick={() => setIsOpen(!isOpen)} 
-                        className="flex items-center gap-2 bg-indigo-100 hover:bg-indigo-200 text-indigo-800 text-xs font-bold px-3 py-1.5 rounded-full transition-colors"
+                        onClick={() => !disabled && setIsOpen(!isOpen)} 
+                        disabled={disabled}
+                        className={`flex items-center gap-2 text-xs font-bold px-3 py-1.5 rounded-full transition-colors ${disabled ? 'bg-gray-100 text-gray-400 cursor-not-allowed' : 'bg-indigo-100 hover:bg-indigo-200 text-indigo-800'}`}
                     >
                         {value.charAt(0).toUpperCase() + value.slice(1)}
-                        <Icon name="chevronDown" size={12} />
+                        {!disabled && <Icon name="chevronDown" size={12} />}
                     </button>
-                    {isOpen && (
+                    {isOpen && !disabled && (
                         <div className="absolute top-full right-0 mt-1 w-32 bg-white/90 backdrop-blur-xl border border-white/20 rounded-xl shadow-2xl z-50 overflow-hidden custom-dropdown-menu">
                             {options.map((opt) => (
                                 <button
@@ -215,66 +195,145 @@ Signed: __________________________`;
             );
         };
 
-        const BlockItem = ({ block, index, updateBlock, deleteBlock, handleDragStart, handleDragEnter, handleDragEnd, draggedItemIndex, getBlockIcon }) => {
+        // --- BLOCK COMPONENT (With Production Mode Support) ---
+        const BlockItem = ({ block, index, updateBlock, deleteBlock, handleDragStart, handleDragEnter, handleDragEnd, draggedItemIndex, getBlockIcon, isProduction, isEditing }) => {
+            const [newSubTask, setNewSubTask] = useState("");
+
+            const addSubTask = () => {
+                if(!newSubTask.trim()) return;
+                const subtasks = [...(block.subtasks || []), { id: Date.now(), text: newSubTask, completed: false }];
+                updateBlock(block.id, 'subtasks', subtasks);
+                setNewSubTask("");
+            };
+
+            const toggleSubTask = (subId) => {
+                const subtasks = (block.subtasks || []).map(t => t.id === subId ? { ...t, completed: !t.completed } : t);
+                updateBlock(block.id, 'subtasks', subtasks);
+            };
+
+            const removeSubTask = (subId) => {
+                const subtasks = (block.subtasks || []).filter(t => t.id !== subId);
+                updateBlock(block.id, 'subtasks', subtasks);
+            };
+
+            const isLocked = isProduction && !isEditing;
+
             return (
                 <div 
-                    draggable={true}
-                    onDragStart={() => handleDragStart(index)}
-                    onDragEnter={(e) => handleDragEnter(e, index)}
-                    onDragEnd={handleDragEnd}
+                    draggable={!isLocked}
+                    onDragStart={!isLocked ? () => handleDragStart(index) : undefined}
+                    onDragEnter={!isLocked ? (e) => handleDragEnter(e, index) : undefined}
+                    onDragEnd={!isLocked ? handleDragEnd : undefined}
                     onDragOver={(e) => e.preventDefault()}
-                    className={`block-card p-4 shadow-lg flex gap-4 items-start group animate-fade-in block-type-${block.type === 'service-template' ? 'service' : block.type} rounded-xl ${draggedItemIndex === index ? 'dragging' : ''}`}
+                    className={`block-card p-4 shadow-lg flex flex-col gap-4 animate-fade-in block-type-${block.type === 'service-template' ? 'service' : block.type} rounded-xl ${draggedItemIndex === index ? 'dragging' : ''} ${isLocked ? 'border-l-4 border-gray-300' : ''}`}
                 >
-                    <div className="pt-1 text-gray-400 cursor-grab hover:text-indigo-500"><Icon name="grip" size={16} /></div>
-                    <div className="pt-1 text-gray-600"><Icon name={getBlockIcon(block.type)} size={18} /></div>
-                    
-                    <div className="flex-1 space-y-2">
-                        <div className="flex justify-between items-start gap-4">
-                            <div className="flex-1">
-                                <div className="flex items-center gap-3">
-                                    <input type="text" value={block.title} onChange={(e) => updateBlock(block.id, 'title', e.target.value)} className="font-bold text-gray-900 text-lg bg-transparent p-0 border-none focus:ring-0 flex-1" />
-                                    
-                                    {/* Premium Dropdown for Service Templates */}
-                                    {block.type === 'service-template' && block.levels && (
-                                        <CustomSelect 
-                                            value={block.selectedLevel || 'standard'}
-                                            onChange={(val) => updateBlock(block.id, 'selectedLevel', val)}
-                                            options={['basic', 'standard', 'premium']
-                                                .filter(lvl => block.levels[lvl]?.active)
-                                                .map(lvl => ({ value: lvl, label: lvl.charAt(0).toUpperCase() + lvl.slice(1) }))}
+                    <div className="flex gap-4 items-start">
+                        {!isLocked && (
+                            <div className="pt-1 text-gray-400 cursor-grab hover:text-indigo-500"><Icon name="grip" size={16} /></div>
+                        )}
+                        <div className="pt-1 text-gray-600"><Icon name={getBlockIcon(block.type)} size={18} /></div>
+                        
+                        <div className="flex-1 space-y-2">
+                            <div className="flex justify-between items-start gap-4">
+                                <div className="flex-1">
+                                    <div className="flex items-center gap-3">
+                                        <input 
+                                            type="text" 
+                                            value={block.title} 
+                                            onChange={(e) => updateBlock(block.id, 'title', e.target.value)} 
+                                            readOnly={isLocked}
+                                            className={`font-bold text-gray-900 text-lg bg-transparent p-0 border-none focus:ring-0 flex-1 ${isLocked ? 'cursor-default' : ''}`} 
                                         />
-                                    )}
+                                        
+                                        {block.type === 'service-template' && block.levels && (
+                                            <CustomSelect 
+                                                value={block.selectedLevel || 'standard'}
+                                                onChange={(val) => updateBlock(block.id, 'selectedLevel', val)}
+                                                disabled={isLocked}
+                                                options={['basic', 'standard', 'premium']
+                                                    .filter(lvl => block.levels[lvl]?.active)
+                                                    .map(lvl => ({ value: lvl, label: lvl.charAt(0).toUpperCase() + lvl.slice(1) }))}
+                                            />
+                                        )}
+                                    </div>
+                                </div>
+                                <div className="flex items-center gap-1 bg-white/50 px-2 py-1 rounded-md border border-white/40 shadow-sm shrink-0">
+                                    <span className="text-gray-500 text-xs">₹</span>
+                                    <input 
+                                        type="number" 
+                                        value={block.price} 
+                                        onChange={(e) => updateBlock(block.id, 'price', e.target.value)} 
+                                        readOnly={isLocked}
+                                        className="w-24 text-right font-mono font-medium text-sm text-gray-800" 
+                                        placeholder="0.00" 
+                                    />
                                 </div>
                             </div>
-                            <div className="flex items-center gap-1 bg-white/50 px-2 py-1 rounded-md border border-white/40 shadow-sm shrink-0">
-                                <span className="text-gray-500 text-xs">₹</span>
-                                <input type="number" value={block.price} onChange={(e) => updateBlock(block.id, 'price', e.target.value)} className="w-24 text-right font-mono font-medium text-sm text-gray-800" placeholder="0.00" />
+                            <div className="grid grid-cols-2 gap-4">
+                                <div className="flex items-center gap-2 bg-white/40 p-2 rounded-lg border border-white/20 focus-within:border-indigo-300 transition-colors h-10">
+                                    <Icon name="link" size={14} className="text-gray-400" />
+                                    <input 
+                                        type="text" 
+                                        placeholder="Reference link..." 
+                                        value={block.link} 
+                                        onChange={(e) => updateBlock(block.id, 'link', e.target.value)} 
+                                        readOnly={isLocked}
+                                        className="text-xs w-full text-blue-700" 
+                                    />
+                                </div>
+                                
+                                <div className="flex items-start gap-2 bg-white/40 p-2 rounded-lg border border-white/20 focus-within:border-indigo-300 transition-colors">
+                                    <Icon name="fileText" size={14} className="text-gray-500 mt-0.5" />
+                                    <textarea 
+                                        placeholder="Description / Bullet points..." 
+                                        value={block.notes} 
+                                        onChange={(e) => updateBlock(block.id, 'notes', e.target.value)} 
+                                        readOnly={isLocked}
+                                        className="text-xs w-full text-gray-900 bg-transparent resize-y focus:outline-none leading-relaxed"
+                                        rows={3}
+                                    />
+                                </div>
                             </div>
                         </div>
-                        <div className="grid grid-cols-2 gap-4">
-                            {/* Reference Link */}
-                            <div className="flex items-center gap-2 bg-white/40 p-2 rounded-lg border border-white/20 focus-within:border-indigo-300 transition-colors h-10">
-                                <Icon name="link" size={14} className="text-gray-400" />
-                                <input type="text" placeholder="Reference link..." value={block.link} onChange={(e) => updateBlock(block.id, 'link', e.target.value)} className="text-xs w-full text-blue-700" />
+
+                        {!isLocked && (
+                            <div className="flex flex-col gap-2">
+                                <button onClick={() => deleteBlock(block.id)} className="p-1.5 rounded-md bg-white/50 text-gray-400 hover:text-red-600 hover:bg-red-50 shadow-sm transition-colors"><Icon name="trash" size={16} /></button>
                             </div>
-                            
-                            {/* Improved Description Textarea */}
-                            <div className="flex items-start gap-2 bg-white/40 p-2 rounded-lg border border-white/20 focus-within:border-indigo-300 transition-colors">
-                                <Icon name="fileText" size={14} className="text-gray-500 mt-0.5" />
-                                <textarea 
-                                    placeholder="Description / Bullet points..." 
-                                    value={block.notes} 
-                                    onChange={(e) => updateBlock(block.id, 'notes', e.target.value)} 
-                                    className="text-xs w-full text-gray-900 bg-transparent resize-y focus:outline-none leading-relaxed"
-                                    rows={3}
-                                />
-                            </div>
-                        </div>
+                        )}
                     </div>
 
-                    <div className="flex flex-col gap-2">
-                        <button onClick={() => deleteBlock(block.id)} className="p-1.5 rounded-md bg-white/50 text-gray-400 hover:text-red-600 hover:bg-red-50 shadow-sm transition-colors"><Icon name="trash" size={16} /></button>
-                    </div>
+                    {/* PRODUCTION MODE: TO-DO LIST */}
+                    {isProduction && (
+                        <div className="border-t border-gray-200/50 pt-3 mt-2 pl-10">
+                            <p className="text-[10px] font-bold text-gray-400 uppercase mb-2">Production Tasks</p>
+                            <div className="space-y-2">
+                                {(block.subtasks || []).map(task => (
+                                    <div key={task.id} className="flex items-center gap-2 group">
+                                        <input 
+                                            type="checkbox" 
+                                            checked={task.completed} 
+                                            onChange={() => toggleSubTask(task.id)}
+                                            className="rounded text-indigo-600 focus:ring-indigo-500 cursor-pointer"
+                                        />
+                                        <span className={`text-sm flex-1 ${task.completed ? 'text-gray-400 line-through' : 'text-gray-700'}`}>{task.text}</span>
+                                        <button onClick={() => removeSubTask(task.id)} className="opacity-0 group-hover:opacity-100 text-gray-400 hover:text-red-500"><Icon name="trash" size={12} /></button>
+                                    </div>
+                                ))}
+                                <div className="flex gap-2 mt-2">
+                                    <input 
+                                        type="text" 
+                                        placeholder="Add task step..." 
+                                        value={newSubTask}
+                                        onChange={(e) => setNewSubTask(e.target.value)}
+                                        onKeyDown={(e) => e.key === 'Enter' && addSubTask()}
+                                        className="text-xs bg-white/50 border border-gray-200 rounded px-2 py-1 flex-1 focus:ring-1 focus:ring-indigo-500"
+                                    />
+                                    <button onClick={addSubTask} className="text-xs bg-indigo-100 text-indigo-600 px-2 py-1 rounded hover:bg-indigo-200"><Icon name="plus" size={12} /></button>
+                                </div>
+                            </div>
+                        </div>
+                    )}
                 </div>
             );
         };
@@ -290,16 +349,20 @@ Signed: __________________________`;
             const [projects, setProjects] = useState([]);
             const [predefinedServices, setPredefinedServices] = useState([]);
             const [activeProjectId, setActiveProjectId] = useState(null);
+            const [deliveryDate, setDeliveryDate] = useState("");
             
+            // App States
             const [showSettings, setShowSettings] = useState(false);
             const [showInvoice, setShowInvoice] = useState(false);
             const [showServiceManager, setShowServiceManager] = useState(false);
-            const [showAgreement, setShowAgreement] = useState(false);
+            const [isEditing, setIsEditing] = useState(false);
+            
             const [servicesExpanded, setServicesExpanded] = useState(false);
             const [draggedItemIndex, setDraggedItemIndex] = useState(null);
             const fileInputRef = useRef(null);
 
             const activeProject = projects.find(p => p.id === activeProjectId) || null;
+            const isProduction = activeProject?.status === 'production';
 
             useEffect(() => {
                 if (!isFirebaseEnabled) return;
@@ -328,7 +391,7 @@ Signed: __________________________`;
                 const name = prompt("Enter Project Name (Client Name):");
                 if(name && user) {
                     const docRef = await db.collection('users').doc(user.uid).collection('projects').add({
-                        name, blocks: [], createdAt: Date.now(), updatedAt: Date.now()
+                        name, blocks: [], status: 'planning', createdAt: Date.now(), updatedAt: Date.now()
                     });
                     setActiveProjectId(docRef.id);
                 }
@@ -366,8 +429,11 @@ Signed: __________________________`;
 
             const addBlock = (type, template = null) => {
                 if(!activeProjectId) return alert("Please create or select a project from the left sidebar first.");
+                if(isProduction && !isEditing) return alert("Project is in Production Mode. Click 'Edit Scope' to add items.");
+
                 const currentBlocks = activeProject ? activeProject.blocks : [];
-                let newBlock = { id: Date.now().toString(), type, title: type === 'service' ? 'New Service' : type === 'material' ? 'New Material' : 'New Milestone', price: 0, link: '', notes: '', completed: false };
+                let newBlock = { id: Date.now().toString(), type, title: type === 'service' ? 'New Service' : type === 'material' ? 'New Material' : 'New Milestone', price: 0, link: '', notes: '', completed: false, subtasks: [] };
+                
                 if (type === 'service-template' && template) {
                     newBlock = { ...newBlock, title: template.name, templateId: template.id, selectedLevel: 'standard', levels: template.levels, price: template.levels.standard?.active ? template.levels.standard.price : 0, notes: template.levels.standard?.active ? template.levels.standard.desc : '' };
                     if (!template.levels.standard?.active) {
@@ -404,6 +470,27 @@ Signed: __________________________`;
                 db.collection('users').doc(user.uid).collection('projects').doc(activeProjectId).update({ blocks, updatedAt: Date.now() });
             };
 
+            const startProduction = async () => {
+                // 1. Generate PDF
+                await generateAndDownloadPdf();
+                
+                // 2. Update Status to Production
+                if(user && activeProjectId) {
+                    await db.collection('users').doc(user.uid).collection('projects').doc(activeProjectId).update({ status: 'production' });
+                    // Local update will happen via onSnapshot
+                }
+                setShowInvoice(false);
+            };
+
+            const toggleEditMode = () => {
+                if (isEditing) {
+                    // Save Changes (Logic already handled by direct updates, just switching state)
+                    setIsEditing(false);
+                } else {
+                    setIsEditing(true);
+                }
+            };
+
             const handleDragStart = (index) => setDraggedItemIndex(index);
             const handleDragEnter = (e, index) => {
                 e.preventDefault();
@@ -426,75 +513,85 @@ Signed: __________________________`;
 
             const totalEstimate = activeProject?.blocks?.reduce((acc, b) => acc + (parseFloat(b.price) || 0), 0) || 0;
             
-            // --- NEW AUTO-GENERATE PDF FUNCTION ---
             const generateAndDownloadPdf = async () => {
                 if (typeof PDFLib === 'undefined') return alert("PDF Library not loaded.");
                 
                 try {
                     const { PDFDocument, rgb, StandardFonts } = PDFLib;
                     const pdfDoc = await PDFDocument.create();
-                    const page = pdfDoc.addPage([600, 800]);
+                    const page = pdfDoc.addPage([600, 850]);
                     const font = await pdfDoc.embedFont(StandardFonts.Helvetica);
                     const fontBold = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
                     
-                    let y = 750;
+                    let y = 780;
                     const margin = 50;
 
-                    // Header: Company & Client Info
+                    // Header
                     page.drawText("PROJECT AGREEMENT", { x: margin, y, size: 24, font: fontBold });
                     y -= 40;
                     
-                    page.drawText(`Provider: ${settings.companyName}`, { x: margin, y, size: 12, font });
+                    page.drawText(`Provider: ${settings.companyName || "Provider Name"}`, { x: margin, y, size: 12, font });
                     y -= 20;
-                    page.drawText(`Client: ${activeProject?.name || "Client"}`, { x: margin, y, size: 12, font });
+                    page.drawText(`Client: ${activeProject?.name || "Client Name"}`, { x: margin, y, size: 12, font });
                     y -= 20;
                     page.drawText(`Date: ${new Date().toLocaleDateString()}`, { x: margin, y, size: 12, font });
                     y -= 40;
 
-                    // Services Table
+                    // Services
                     page.drawText("SERVICES & DELIVERABLES", { x: margin, y, size: 14, font: fontBold });
+                    y -= 10;
+                    page.drawLine({ start: { x: margin, y }, end: { x: 550, y }, thickness: 1, color: rgb(0.8, 0.8, 0.8) });
                     y -= 25;
 
                     (activeProject?.blocks || []).forEach(block => {
-                        if (y < 100) { 
-                            // Add new page if running out of space
-                            // (Simple implementation, assumes 1 page is usually enough for summary)
-                        }
                         const title = `${block.title} (${block.selectedLevel || 'Standard'})`;
                         const price = `INR ${block.price}`;
-                        
                         page.drawText(title, { x: margin, y, size: 12, font: fontBold });
                         page.drawText(price, { x: 450, y, size: 12, font: fontBold, align: 'right' });
                         y -= 15;
                         
                         if (block.notes) {
-                            // Simple text wrapping or truncation for notes
-                            const notes = block.notes.length > 80 ? block.notes.substring(0, 80) + "..." : block.notes;
-                            page.drawText(notes, { x: margin + 10, y, size: 10, font, color: rgb(0.4, 0.4, 0.4) });
-                            y -= 20;
+                            const words = block.notes.split(' ');
+                            let line = '';
+                            words.forEach(word => {
+                                if ((line + word).length > 85) {
+                                    page.drawText(line, { x: margin + 10, y, size: 10, font, color: rgb(0.4, 0.4, 0.4) });
+                                    y -= 14;
+                                    line = '';
+                                }
+                                line += word + ' ';
+                            });
+                            if(line) {
+                                page.drawText(line, { x: margin + 10, y, size: 10, font, color: rgb(0.4, 0.4, 0.4) });
+                                y -= 20;
+                            }
                         } else {
-                            y -= 10;
+                            y -= 20;
                         }
                     });
 
-                    y -= 20;
-                    // Total
+                    y -= 10;
                     page.drawLine({ start: { x: margin, y }, end: { x: 550, y }, thickness: 1, color: rgb(0.8, 0.8, 0.8) });
                     y -= 30;
                     page.drawText(`TOTAL ESTIMATE: INR ${totalEstimate.toLocaleString('en-IN')}`, { x: margin, y, size: 16, font: fontBold });
                     
-                    y -= 60;
-                    // Terms text (First few lines)
+                    y -= 50;
                     page.drawText("TERMS & CONDITIONS", { x: margin, y, size: 12, font: fontBold });
                     y -= 20;
-                    page.drawText("1. Scope: Services will be performed as listed above.", { x: margin, y, size: 10, font });
-                    y -= 15;
-                    page.drawText("2. Payment: 50% deposit required to begin work.", { x: margin, y, size: 10, font });
-                    y -= 15;
-                    page.drawText("3. Validity: This estimate is valid for 14 days.", { x: margin, y, size: 10, font });
+                    
+                    const terms = [
+                        "1. Scope: Services will be performed as listed above.",
+                        "2. Payment: 50% deposit required to begin work.",
+                        `3. Delivery: Estimated completion by ${deliveryDate || "TBD"}.`,
+                        "4. Validity: This estimate is valid for 14 days."
+                    ];
+                    
+                    terms.forEach(term => {
+                        page.drawText(term, { x: margin, y, size: 10, font });
+                        y -= 15;
+                    });
 
-                    // Signatures
-                    y -= 80;
+                    y -= 60;
                     page.drawLine({ start: { x: margin, y }, end: { x: 250, y }, thickness: 1 });
                     page.drawLine({ start: { x: 350, y }, end: { x: 550, y }, thickness: 1 });
                     y -= 15;
@@ -545,8 +642,11 @@ Signed: __________________________`;
                             <div className="flex justify-between items-center px-2 mb-2"><span className="text-xs font-bold text-white/40 uppercase">Projects</span><button onClick={createProject} className="text-white hover:bg-white/20 p-1 rounded"><Icon name="plus" size={14}/></button></div>
                             {projects.map(p => (
                                 <button key={p.id} onClick={() => setActiveProjectId(p.id)} className={`w-full text-left px-3 py-2.5 rounded-lg text-sm font-medium flex items-center gap-2 transition-all ${activeProjectId === p.id ? 'bg-white/20 shadow-lg border border-white/10' : 'text-white/60 hover:bg-white/5'}`}>
-                                    <Icon name="box" size={14} className={activeProjectId === p.id ? "text-white" : "text-white/40"} />
-                                    <span className="truncate">{p.name}</span>
+                                    <div className="flex items-center gap-2 flex-1 overflow-hidden">
+                                        {/* Status Dot */}
+                                        {p.status === 'production' ? <div className="w-2 h-2 rounded-full bg-green-400 shadow-[0_0_8px_rgba(74,222,128,0.8)]"></div> : <Icon name="box" size={14} className="text-white/40" />}
+                                        <span className="truncate">{p.name}</span>
+                                    </div>
                                 </button>
                             ))}
                         </div>
@@ -561,12 +661,35 @@ Signed: __________________________`;
                     <div className="flex-1 flex flex-col z-10 relative overflow-hidden">
                         <header className="h-16 glass-header flex justify-between items-center px-8 shadow-sm shrink-0">
                             <div>
-                                <h1 className="text-xl font-bold text-white drop-shadow-md">{activeProject ? activeProject.name : 'Select a Project'}</h1>
+                                <div className="flex items-center gap-3">
+                                    <h1 className="text-xl font-bold text-white drop-shadow-md">{activeProject ? activeProject.name : 'Select a Project'}</h1>
+                                    {isProduction && <span className="bg-green-500/20 border border-green-500/50 text-green-300 text-[10px] px-2 py-0.5 rounded uppercase font-bold tracking-wide">Production Mode</span>}
+                                </div>
                                 {activeProject && <span className="text-xs text-white/60">Last updated: {new Date(activeProject.updatedAt || Date.now()).toLocaleTimeString()}</span>}
                             </div>
-                            <button onClick={() => setShowInvoice(true)} className="bg-white/20 border border-white/20 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-white/30 backdrop-blur transition-all flex items-center gap-2">
-                                <Icon name="fileText" size={16} /> Client View
-                            </button>
+                            
+                            <div className="flex items-center gap-3">
+                                {isProduction ? (
+                                    <>
+                                        {isEditing ? (
+                                            <button onClick={toggleEditMode} className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg text-sm font-bold shadow-lg transition-all flex items-center gap-2">
+                                                <Icon name="check" size={16} /> Save Changes
+                                            </button>
+                                        ) : (
+                                            <button onClick={toggleEditMode} className="bg-white/10 border border-white/20 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-white/20 transition-all flex items-center gap-2">
+                                                <Icon name="edit" size={16} /> Edit Scope
+                                            </button>
+                                        )}
+                                        <button onClick={generateAndDownloadPdf} className="bg-white/10 border border-white/20 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-white/20 transition-all flex items-center gap-2">
+                                            <Icon name="print" size={16} /> Agreement
+                                        </button>
+                                    </>
+                                ) : (
+                                    <button onClick={() => setShowInvoice(true)} className="bg-white/20 border border-white/20 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-white/30 backdrop-blur transition-all flex items-center gap-2">
+                                        <Icon name="fileText" size={16} /> Client View
+                                    </button>
+                                )}
+                            </div>
                         </header>
 
                         <div className="flex-1 min-h-0 overflow-y-auto p-8 custom-scrollbar relative">
@@ -594,6 +717,8 @@ Signed: __________________________`;
                                         handleDragEnd={handleDragEnd}
                                         draggedItemIndex={draggedItemIndex}
                                         getBlockIcon={getBlockIcon}
+                                        isProduction={isProduction}
+                                        isEditing={isEditing}
                                     />
                                 ))}
                             </div>
@@ -604,49 +729,53 @@ Signed: __________________________`;
                             <span className="text-sm font-medium opacity-70">Total Project Estimate</span>
                             <div className="flex items-center gap-4">
                                 <span className="text-2xl font-bold font-mono">₹{totalEstimate.toLocaleString('en-IN')}</span>
-                                <button onClick={() => setShowInvoice(true)} className="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg text-sm font-bold shadow-lg transition-all flex items-center gap-2">
-                                    Proceed <Icon name="chevronRight" size={16} />
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-
-                    {/* RIGHT SIDEBAR */}
-                    <div className="w-72 glass-sidebar border-l border-white/10 flex flex-col z-10 shadow-2xl text-white">
-                        <div className="p-5 border-b border-white/10">
-                            <h3 className="text-xs font-bold text-white/50 uppercase tracking-wider">Toolbox</h3>
-                        </div>
-                        <div className="flex-1 overflow-y-auto p-4 space-y-4 custom-scrollbar">
-                            <div className="space-y-2">
-                                <p className="text-[10px] text-white/40 uppercase font-bold pl-1">Basic Blocks</p>
-                                <button onClick={() => addBlock('service')} className="w-full bg-white/5 hover:bg-white/10 border border-white/5 p-3 rounded-xl flex items-center gap-3 transition-all text-left"><div className="w-8 h-8 rounded bg-indigo-500/20 text-indigo-200 flex items-center justify-center"><Icon name="box" /></div><span className="text-sm font-bold">Custom Service</span></button>
-                                <button onClick={() => addBlock('material')} className="w-full bg-white/5 hover:bg-white/10 border border-white/5 p-3 rounded-xl flex items-center gap-3 transition-all text-left"><div className="w-8 h-8 rounded bg-orange-500/20 text-orange-200 flex items-center justify-center"><Icon name="layers" /></div><span className="text-sm font-bold">Material</span></button>
-                                <button onClick={() => addBlock('milestone')} className="w-full bg-white/5 hover:bg-white/10 border border-white/5 p-3 rounded-xl flex items-center gap-3 transition-all text-left"><div className="w-8 h-8 rounded bg-green-500/20 text-green-200 flex items-center justify-center"><Icon name="check" /></div><span className="text-sm font-bold">Milestone</span></button>
-                            </div>
-
-                            <div className="space-y-2 pt-2 border-t border-white/10">
-                                <div className="flex justify-between items-center pl-1">
-                                    <p className="text-[10px] text-white/40 uppercase font-bold">Services</p>
-                                    <button onClick={() => setShowServiceManager(true)} className="text-[10px] text-indigo-300 hover:text-indigo-100 hover:underline">Manage</button>
-                                </div>
-                                <button onClick={() => setServicesExpanded(!servicesExpanded)} className="w-full flex justify-between items-center text-sm text-white/70 hover:bg-white/5 p-2 rounded transition">
-                                    <span>Available Services ({predefinedServices.length})</span>
-                                    <div className={`transform transition ${servicesExpanded ? 'rotate-180' : ''}`}><Icon name="chevronDown" size={14} /></div>
-                                </button>
-                                {servicesExpanded && (
-                                    <div className="space-y-2 animate-fade-in pl-2">
-                                        {predefinedServices.map(svc => (
-                                            <button key={svc.id} onClick={() => addBlock('service-template', svc)} className="w-full text-left p-2.5 rounded-lg bg-indigo-900/30 border border-indigo-500/20 hover:bg-indigo-900/50 hover:border-indigo-500/40 transition text-sm">
-                                                <div className="font-bold text-indigo-100">{svc.name}</div>
-                                                <div className="text-[10px] text-indigo-300 mt-0.5 truncate">{svc.description || "No description"}</div>
-                                            </button>
-                                        ))}
-                                        {predefinedServices.length === 0 && <p className="text-xs text-white/30 text-center py-2">No services yet.</p>}
-                                    </div>
+                                {!isProduction && (
+                                    <button onClick={() => setShowInvoice(true)} className="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg text-sm font-bold shadow-lg transition-all flex items-center gap-2">
+                                        Proceed <Icon name="chevronRight" size={16} />
+                                    </button>
                                 )}
                             </div>
                         </div>
                     </div>
+
+                    {/* RIGHT SIDEBAR (Only visible in Planning or Editing Mode) */}
+                    {(!isProduction || isEditing) && (
+                        <div className="w-72 glass-sidebar border-l border-white/10 flex flex-col z-10 shadow-2xl text-white">
+                            <div className="p-5 border-b border-white/10">
+                                <h3 className="text-xs font-bold text-white/50 uppercase tracking-wider">Toolbox</h3>
+                            </div>
+                            <div className="flex-1 overflow-y-auto p-4 space-y-4 custom-scrollbar">
+                                <div className="space-y-2">
+                                    <p className="text-[10px] text-white/40 uppercase font-bold pl-1">Basic Blocks</p>
+                                    <button onClick={() => addBlock('service')} className="w-full bg-white/5 hover:bg-white/10 border border-white/5 p-3 rounded-xl flex items-center gap-3 transition-all text-left"><div className="w-8 h-8 rounded bg-indigo-500/20 text-indigo-200 flex items-center justify-center"><Icon name="box" /></div><span className="text-sm font-bold">Custom Service</span></button>
+                                    <button onClick={() => addBlock('material')} className="w-full bg-white/5 hover:bg-white/10 border border-white/5 p-3 rounded-xl flex items-center gap-3 transition-all text-left"><div className="w-8 h-8 rounded bg-orange-500/20 text-orange-200 flex items-center justify-center"><Icon name="layers" /></div><span className="text-sm font-bold">Material</span></button>
+                                    <button onClick={() => addBlock('milestone')} className="w-full bg-white/5 hover:bg-white/10 border border-white/5 p-3 rounded-xl flex items-center gap-3 transition-all text-left"><div className="w-8 h-8 rounded bg-green-500/20 text-green-200 flex items-center justify-center"><Icon name="check" /></div><span className="text-sm font-bold">Milestone</span></button>
+                                </div>
+
+                                <div className="space-y-2 pt-2 border-t border-white/10">
+                                    <div className="flex justify-between items-center pl-1">
+                                        <p className="text-[10px] text-white/40 uppercase font-bold">Services</p>
+                                        <button onClick={() => setShowServiceManager(true)} className="text-[10px] text-indigo-300 hover:text-indigo-100 hover:underline">Manage</button>
+                                    </div>
+                                    <button onClick={() => setServicesExpanded(!servicesExpanded)} className="w-full flex justify-between items-center text-sm text-white/70 hover:bg-white/5 p-2 rounded transition">
+                                        <span>Available Services ({predefinedServices.length})</span>
+                                        <div className={`transform transition ${servicesExpanded ? 'rotate-180' : ''}`}><Icon name="chevronDown" size={14} /></div>
+                                    </button>
+                                    {servicesExpanded && (
+                                        <div className="space-y-2 animate-fade-in pl-2">
+                                            {predefinedServices.map(svc => (
+                                                <button key={svc.id} onClick={() => addBlock('service-template', svc)} className="w-full text-left p-2.5 rounded-lg bg-indigo-900/30 border border-indigo-500/20 hover:bg-indigo-900/50 hover:border-indigo-500/40 transition text-sm">
+                                                    <div className="font-bold text-indigo-100">{svc.name}</div>
+                                                    <div className="text-[10px] text-indigo-300 mt-0.5 truncate">{svc.description || "No description"}</div>
+                                                </button>
+                                            ))}
+                                            {predefinedServices.length === 0 && <p className="text-xs text-white/30 text-center py-2">No services yet.</p>}
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+                        </div>
+                    )}
 
                     {/* MODALS */}
                     {showServiceManager && (
@@ -678,8 +807,6 @@ Signed: __________________________`;
                                     </div>
                                     <div><label className="text-xs font-bold uppercase block mb-1">Wallpaper URL</label><input type="text" value={settings.bgImage} onChange={(e) => updateSettings({...settings, bgImage: e.target.value})} className="w-full p-2 border rounded-lg bg-white/50" /></div>
                                     
-                                    {/* PDF Config - Removed Upload, kept settings logic placeholder if needed for future */}
-                                    
                                     <div className="flex justify-between pt-4 border-t mt-4">
                                         <button onClick={logout} className="text-red-500 text-sm font-medium hover:underline">Sign Out</button>
                                         <button onClick={() => setShowSettings(false)} className="bg-indigo-600 text-white px-4 py-2 rounded-lg text-sm font-bold shadow-lg hover:bg-indigo-700">Done</button>
@@ -692,59 +819,50 @@ Signed: __________________________`;
                     {showInvoice && (
                         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm">
                             <div className="bg-white w-[700px] h-[80vh] rounded-sm shadow-2xl animate-fade-in flex flex-col text-gray-800">
-                                {showAgreement ? (
-                                    <>
-                                        <div className="flex-1 overflow-y-auto p-12 bg-white" id="agreement-print-area">
-                                            {/* Simple HTML Preview of what PDF will roughly look like */}
-                                            <div className="mb-8 text-center border-b pb-4">
-                                                <h2 className="font-bold text-xl uppercase tracking-widest">AGREEMENT GENERATED</h2>
-                                                <p className="text-sm text-gray-500">Click download to get the official PDF.</p>
-                                            </div>
-                                            <div className="prose prose-sm max-w-none font-serif whitespace-pre-wrap leading-relaxed text-center">
-                                                <p>This document will be auto-generated with:</p>
-                                                <ul className="list-disc text-left pl-10">
-                                                    <li>Client: {activeProject?.name}</li>
-                                                    <li>Total: ₹{totalEstimate.toLocaleString('en-IN')}</li>
-                                                    <li>{activeProject?.blocks?.length} Services Listed</li>
-                                                </ul>
-                                            </div>
+                                <div className="flex-1 overflow-y-auto p-8">
+                                    <div className="flex justify-between border-b pb-6 mb-6">
+                                        <div className="flex items-center gap-3">
+                                            {settings.logoUrl && <img src={settings.logoUrl} className="h-12 object-contain" />}
+                                            <h2 className="font-bold text-2xl">{settings.companyName}</h2>
                                         </div>
-                                        <div className="p-4 border-t bg-gray-50 flex justify-between items-center">
-                                            <button onClick={() => setShowAgreement(false)} className="text-gray-500 hover:text-black">Back to Estimate</button>
-                                            <div className="flex gap-2">
-                                                {/* Changed from Uploaded PDF logic to Auto-Generate logic */}
-                                                <button onClick={generateAndDownloadPdf} className="bg-indigo-600 text-white px-4 py-2 rounded font-bold hover:bg-indigo-700 flex items-center gap-2">
-                                                    <Icon name="download" /> Generate & Download PDF
-                                                </button>
-                                            </div>
-                                        </div>
-                                    </>
-                                ) : (
-                                    <>
-                                        <div className="flex-1 overflow-y-auto p-8">
-                                            <div className="flex justify-between border-b pb-6 mb-6">
-                                                <div className="flex items-center gap-3">
-                                                    {settings.logoUrl && <img src={settings.logoUrl} className="h-12 object-contain" />}
-                                                    <h2 className="font-bold text-2xl">{settings.companyName}</h2>
-                                                </div>
-                                                <div className="text-right"><p className="text-xs text-gray-400">DATE</p><p className="font-bold">{new Date().toLocaleDateString()}</p></div>
-                                            </div>
-                                            <table className="w-full text-left text-sm">
-                                                <thead><tr className="border-b text-gray-400 text-xs uppercase"><th className="pb-2">Item</th><th className="pb-2 text-right">Price</th></tr></thead>
-                                                <tbody>{activeProject && activeProject.blocks && activeProject.blocks.map(b => (<tr key={b.id}><td className="py-3 border-b border-gray-100"><p className="font-bold">{b.title}</p><p className="text-gray-400 text-xs">{b.notes}</p></td><td className="py-3 border-b border-gray-100 text-right font-mono">₹{parseFloat(b.price||0).toLocaleString('en-IN')}</td></tr>))}</tbody>
-                                            </table>
-                                        </div>
-                                        <div className="bg-gray-50 p-8 border-t border-gray-100 flex justify-between items-center">
-                                            <div className="text-left">
-                                                <button onClick={() => setShowInvoice(false)} className="text-gray-400 text-sm hover:text-black mr-4">Close</button>
-                                            </div>
-                                            <div className="flex items-center gap-6">
-                                                <div className="text-right"><p className="text-xs text-gray-400 font-bold uppercase">Total</p><p className="text-3xl font-bold text-indigo-900">₹{totalEstimate.toLocaleString('en-IN')}</p></div>
-                                                <button onClick={() => setShowAgreement(true)} className="bg-indigo-600 text-white px-6 py-3 rounded font-bold shadow hover:bg-indigo-700">Proceed to Agreement</button>
-                                            </div>
-                                        </div>
-                                    </>
-                                )}
+                                        <div className="text-right"><p className="text-xs text-gray-400">DATE</p><p className="font-bold">{new Date().toLocaleDateString()}</p></div>
+                                    </div>
+                                    
+                                    {/* Delivery Date Input */}
+                                    <div className="mb-6 bg-indigo-50 p-4 rounded-lg border border-indigo-100 flex items-center justify-between">
+                                        <label className="text-sm font-bold text-indigo-800 flex items-center gap-2">
+                                            <Icon name="calendar" size={16} /> Expected Delivery Date:
+                                        </label>
+                                        <input 
+                                            type="date" 
+                                            value={deliveryDate} 
+                                            onChange={(e) => setDeliveryDate(e.target.value)}
+                                            className="bg-white border border-indigo-200 rounded px-3 py-1 text-sm focus:ring-2 focus:ring-indigo-500 outline-none"
+                                        />
+                                    </div>
+
+                                    <table className="w-full text-left text-sm">
+                                        <thead><tr className="border-b text-gray-400 text-xs uppercase"><th className="pb-2">Item</th><th className="pb-2 text-right">Price</th></tr></thead>
+                                        <tbody>{activeProject && activeProject.blocks && activeProject.blocks.map(b => (<tr key={b.id}><td className="py-3 border-b border-gray-100"><p className="font-bold">{b.title}</p><p className="text-gray-400 text-xs">{b.notes}</p></td><td className="py-3 border-b border-gray-100 text-right font-mono">₹{parseFloat(b.price||0).toLocaleString('en-IN')}</td></tr>))}</tbody>
+                                    </table>
+                                </div>
+                                <div className="bg-gray-50 p-8 border-t border-gray-100 flex justify-between items-center">
+                                    <div className="text-left">
+                                        <button onClick={() => setShowInvoice(false)} className="text-gray-400 text-sm hover:text-black mr-4">Close</button>
+                                    </div>
+                                    <div className="flex items-center gap-6">
+                                        <div className="text-right"><p className="text-xs text-gray-400 font-bold uppercase">Total</p><p className="text-3xl font-bold text-indigo-900">₹{totalEstimate.toLocaleString('en-IN')}</p></div>
+                                        <button 
+                                            onClick={() => {
+                                                if(!deliveryDate) return alert("Please set a delivery date first.");
+                                                startProduction();
+                                            }} 
+                                            className="bg-indigo-600 text-white px-6 py-3 rounded font-bold shadow hover:bg-indigo-700"
+                                        >
+                                            Save & Download Agreement
+                                        </button>
+                                    </div>
+                                </div>
                             </div>
                         </div>
                     )}
