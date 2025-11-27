@@ -21,24 +21,24 @@
         
         body { font-family: 'Inter', sans-serif; margin: 0; padding: 0; overflow: hidden; background: #111; color: #fff; }
         
-        /* Ultra Glass Theme - Refined */
+        /* Ultra Glass Theme */
         .glass-panel { 
-            background: rgba(255, 255, 255, 0.15); 
-            backdrop-filter: blur(25px); 
-            -webkit-backdrop-filter: blur(25px); 
-            border: 1px solid rgba(255, 255, 255, 0.2); 
-            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.2); 
+            background: rgba(255, 255, 255, 0.1); 
+            backdrop-filter: blur(15px); 
+            -webkit-backdrop-filter: blur(15px); 
+            border: 1px solid rgba(255, 255, 255, 0.15); 
+            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.1); 
         }
         
         .glass-sidebar {
-            background: rgba(20, 20, 20, 0.4);
-            backdrop-filter: blur(30px);
-            border-right: 1px solid rgba(255, 255, 255, 0.1);
+            background: rgba(10, 10, 10, 0.25);
+            backdrop-filter: blur(12px);
+            border-right: 1px solid rgba(255, 255, 255, 0.08);
         }
         
         .glass-header {
-            background: rgba(255, 255, 255, 0.1);
-            backdrop-filter: blur(15px);
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(10px);
             border-bottom: 1px solid rgba(255, 255, 255, 0.1);
         }
 
@@ -46,14 +46,14 @@
         .block-card { 
             transition: transform 0.2s cubic-bezier(0.25, 0.46, 0.45, 0.94), background 0.2s;
             border-left: 4px solid transparent;
-            background: rgba(255, 255, 255, 0.7);
-            backdrop-filter: blur(15px);
-            border: 1px solid rgba(255, 255, 255, 0.4);
+            background: rgba(255, 255, 255, 0.6);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.3);
             color: #1f2937;
         }
         .block-card:hover { 
             transform: translateY(-2px); 
-            background: rgba(255, 255, 255, 0.9);
+            background: rgba(255, 255, 255, 0.85);
             box-shadow: 0 10px 20px rgba(0,0,0,0.1);
         }
         .block-card.dragging {
@@ -66,11 +66,11 @@
         .block-type-material { border-left-color: #ea580c; } 
         .block-type-milestone { border-left-color: #16a34a; } 
 
-        /* Scrollbar - Made more visible */
+        /* Scrollbar */
         .custom-scrollbar::-webkit-scrollbar { width: 8px; }
-        .custom-scrollbar::-webkit-scrollbar-track { background: rgba(0,0,0,0.1); }
-        .custom-scrollbar::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.4); border-radius: 10px; }
-        .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.6); }
+        .custom-scrollbar::-webkit-scrollbar-track { background: rgba(0,0,0,0.05); }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.3); border-radius: 10px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.5); }
 
         .animate-fade-in { animation: fadeIn 0.3s ease-out; }
         @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
@@ -80,7 +80,6 @@
         input:focus, select:focus, textarea:focus { outline: none; }
         input::placeholder { color: rgba(0,0,0,0.4); }
 
-        /* Print Styles for Agreement */
         @media print {
             body * { visibility: hidden; }
             #agreement-print-area, #agreement-print-area * { visibility: visible; }
@@ -168,7 +167,6 @@ Signed: __________________________`;
             const [predefinedServices, setPredefinedServices] = useState([]);
             const [activeProjectId, setActiveProjectId] = useState(null);
             
-            // UI States
             const [showSettings, setShowSettings] = useState(false);
             const [showInvoice, setShowInvoice] = useState(false);
             const [showServiceManager, setShowServiceManager] = useState(false);
@@ -177,24 +175,21 @@ Signed: __________________________`;
             const [draggedItemIndex, setDraggedItemIndex] = useState(null);
             const fileInputRef = useRef(null);
 
-            const activeProject = projects.find(p => p.id === activeProjectId) || { name: "Untitled Project", blocks: [] };
+            const activeProject = projects.find(p => p.id === activeProjectId) || null;
 
             useEffect(() => {
                 if (!isFirebaseEnabled) return;
                 return auth.onAuthStateChanged((u) => {
                     setUser(u);
                     if (u) {
-                        // Load Settings
                         db.collection('users').doc(u.uid).collection('settings').doc('config').onSnapshot(doc => {
                             if(doc.exists) setSettings(prev => ({...prev, ...doc.data()}));
                         });
-                        // Load Projects
                         db.collection('users').doc(u.uid).collection('projects').orderBy('updatedAt', 'desc').onSnapshot(snapshot => {
                             const loadedProjects = snapshot.docs.map(doc => ({id: doc.id, ...doc.data()}));
                             setProjects(loadedProjects);
                             if(loadedProjects.length > 0 && !activeProjectId) setActiveProjectId(loadedProjects[0].id);
                         });
-                        // Load Predefined Services
                         db.collection('users').doc(u.uid).collection('services').onSnapshot(snapshot => {
                             setPredefinedServices(snapshot.docs.map(doc => ({id: doc.id, ...doc.data()})));
                         });
@@ -231,7 +226,6 @@ Signed: __________________________`;
                 reader.readAsDataURL(file);
             };
 
-            // --- SERVICE BUILDER LOGIC ---
             const savePredefinedService = async (serviceData) => {
                 if(user) {
                     if(serviceData.id) {
@@ -243,11 +237,13 @@ Signed: __________________________`;
             };
 
             const addBlock = (type, template = null) => {
-                if(!activeProjectId) return alert("Create a project first!");
+                if(!activeProjectId) return alert("Please create or select a project from the left sidebar first.");
                 
+                const currentBlocks = activeProject ? activeProject.blocks : [];
+
                 let newBlock = {
                     id: Date.now().toString(),
-                    type, // 'service', 'material', 'milestone', 'service-template'
+                    type, 
                     title: type === 'service' ? 'New Service' : type === 'material' ? 'New Material' : 'New Milestone',
                     price: 0, link: '', notes: '', completed: false
                 };
@@ -257,12 +253,11 @@ Signed: __________________________`;
                         ...newBlock,
                         title: template.name,
                         templateId: template.id,
-                        selectedLevel: 'standard', // Default
+                        selectedLevel: 'standard',
                         levels: template.levels,
                         price: template.levels.standard?.active ? template.levels.standard.price : 0,
                         notes: template.levels.standard?.active ? template.levels.standard.desc : ''
                     };
-                    // Auto-select first active level if standard isn't
                     if (!template.levels.standard?.active) {
                         if (template.levels.basic?.active) {
                             newBlock.selectedLevel = 'basic';
@@ -276,21 +271,21 @@ Signed: __________________________`;
                     }
                 }
 
-                const updatedBlocks = [...activeProject.blocks, newBlock];
+                const updatedBlocks = [...currentBlocks, newBlock];
                 updateProjectBlocks(updatedBlocks);
             };
 
             const updateBlock = (blockId, field, value) => {
+                if (!activeProject) return;
                 let updatedBlocks = activeProject.blocks.map(b => {
                     if (b.id !== blockId) return b;
                     let updatedBlock = { ...b, [field]: value };
                     
-                    // Handle Template Level Switching
                     if (field === 'selectedLevel' && b.type === 'service-template') {
                         const levelData = b.levels[value];
                         if (levelData) {
                             updatedBlock.price = levelData.price;
-                            updatedBlock.notes = levelData.desc; // Auto-fill notes with level description
+                            updatedBlock.notes = levelData.desc;
                         }
                     }
                     return updatedBlock;
@@ -299,17 +294,17 @@ Signed: __________________________`;
             };
 
             const deleteBlock = (blockId) => {
-                // Fixed: Removed confirmation dialogue for instant deletion
+                if (!activeProject) return;
                 updateProjectBlocks(activeProject.blocks.filter(b => b.id !== blockId));
             };
 
             const updateProjectBlocks = (blocks) => {
+                if (!activeProjectId || !user) return;
                 const updatedProject = { ...activeProject, blocks, updatedAt: Date.now() };
                 setProjects(projects.map(p => p.id === activeProjectId ? updatedProject : p));
-                if(user) db.collection('users').doc(user.uid).collection('projects').doc(activeProjectId).update({ blocks, updatedAt: Date.now() });
+                db.collection('users').doc(user.uid).collection('projects').doc(activeProjectId).update({ blocks, updatedAt: Date.now() });
             };
 
-            // Drag & Drop
             const handleDragStart = (index) => setDraggedItemIndex(index);
             const handleDragEnter = (e, index) => {
                 e.preventDefault();
@@ -336,18 +331,15 @@ Signed: __________________________`;
                 }
             };
 
-            const totalEstimate = activeProject.blocks?.reduce((acc, b) => acc + (parseFloat(b.price) || 0), 0) || 0;
-
+            const totalEstimate = activeProject?.blocks?.reduce((acc, b) => acc + (parseFloat(b.price) || 0), 0) || 0;
             const printAgreement = () => window.print();
 
             if (!user) return (
                 <div className="min-h-screen flex items-center justify-center bg-gray-900 bg-cover bg-center transition-all duration-700">
-                    {/* Fixed: Moved BG image to a fixed div to act as true wallpaper */}
                     <div className="fixed inset-0 z-0">
                         <img src={settings.bgImage} className="w-full h-full object-cover" alt="Background" />
                         <div className="absolute inset-0 bg-black/50 backdrop-blur-md"></div>
                     </div>
-                    
                     <div className="relative z-10 glass-panel p-10 rounded-2xl text-center max-w-md w-full">
                         <h1 className="text-3xl font-bold mb-2">FocusFlow</h1>
                         <p className="text-sm opacity-80 mb-6">Production Management Suite</p>
@@ -359,15 +351,13 @@ Signed: __________________________`;
             );
 
             return (
-                /* Fixed: Changed from min-h-screen to h-screen for fixed viewport height */
                 <div className="h-screen w-full flex text-gray-800 font-sans overflow-hidden bg-cover bg-center transition-all duration-700 relative">
-                    {/* Fixed: Wallpaper as separate fixed layer */}
                     <div className="fixed inset-0 z-0">
                         <img src={settings.bgImage} className="w-full h-full object-cover" alt="Background" />
                         <div className="absolute inset-0 bg-black/20"></div>
                     </div>
                     
-                    {/* LEFT SIDEBAR */}
+                    {/* SIDEBAR */}
                     <div className="w-64 glass-sidebar flex flex-col z-10 shadow-2xl relative text-white">
                         <div className="p-5 border-b border-white/10">
                             <div className="mb-4 relative group cursor-pointer" onClick={() => setShowSettings(true)}>
@@ -396,24 +386,28 @@ Signed: __________________________`;
                     <div className="flex-1 flex flex-col z-10 relative overflow-hidden">
                         <header className="h-16 glass-header flex justify-between items-center px-8 shadow-sm shrink-0">
                             <div>
-                                <h1 className="text-xl font-bold text-white drop-shadow-md">{activeProject.name}</h1>
-                                <span className="text-xs text-white/60">Last updated: {new Date(activeProject.updatedAt || Date.now()).toLocaleTimeString()}</span>
+                                <h1 className="text-xl font-bold text-white drop-shadow-md">{activeProject ? activeProject.name : 'Select a Project'}</h1>
+                                {activeProject && <span className="text-xs text-white/60">Last updated: {new Date(activeProject.updatedAt || Date.now()).toLocaleTimeString()}</span>}
                             </div>
                             <button onClick={() => setShowInvoice(true)} className="bg-white/20 border border-white/20 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-white/30 backdrop-blur transition-all flex items-center gap-2">
                                 <Icon name="fileText" size={16} /> Client View
                             </button>
                         </header>
 
-                        {/* Fixed: Added min-h-0 to allow flex child to scroll properly */}
                         <div className="flex-1 min-h-0 overflow-y-auto p-8 custom-scrollbar relative">
                             <div className="max-w-4xl mx-auto space-y-3 pb-24"> 
-                                {activeProject.blocks && activeProject.blocks.length === 0 && (
+                                {!activeProject && (
+                                    <div className="text-center py-20 border-2 border-dashed border-white/20 rounded-xl bg-white/5 text-white/50 backdrop-blur-sm">
+                                        <p>Please create or select a project from the left sidebar.</p>
+                                    </div>
+                                )}
+                                {activeProject && activeProject.blocks && activeProject.blocks.length === 0 && (
                                     <div className="text-center py-20 border-2 border-dashed border-white/20 rounded-xl bg-white/5 text-white/50 backdrop-blur-sm">
                                         <p>Select a tool from the right to start.</p>
                                     </div>
                                 )}
 
-                                {activeProject.blocks && activeProject.blocks.map((block, index) => (
+                                {activeProject && activeProject.blocks && activeProject.blocks.map((block, index) => (
                                     <div 
                                         key={block.id}
                                         draggable={true}
@@ -430,21 +424,25 @@ Signed: __________________________`;
                                             <div className="flex justify-between items-start gap-4">
                                                 <div className="flex-1">
                                                     <input type="text" value={block.title} onChange={(e) => updateBlock(block.id, 'title', e.target.value)} className="font-bold text-gray-900 text-lg w-full bg-transparent p-0 border-none focus:ring-0" />
-                                                    {/* Template Level Selector */}
                                                     {block.type === 'service-template' && block.levels && (
-                                                        <select 
-                                                            value={block.selectedLevel || 'standard'} 
-                                                            onChange={(e) => updateBlock(block.id, 'selectedLevel', e.target.value)}
-                                                            className="text-xs bg-indigo-50 text-indigo-700 border border-indigo-200 rounded px-2 py-1 mt-1 cursor-pointer hover:bg-indigo-100"
-                                                        >
-                                                            {Object.keys(block.levels).map(lvl => (
-                                                                block.levels[lvl].active && <option key={lvl} value={lvl}>{lvl.charAt(0).toUpperCase() + lvl.slice(1)}</option>
-                                                            ))}
-                                                        </select>
+                                                        <div className="relative mt-2 inline-block">
+                                                            <select 
+                                                                value={block.selectedLevel || 'standard'} 
+                                                                onChange={(e) => updateBlock(block.id, 'selectedLevel', e.target.value)}
+                                                                className="appearance-none bg-indigo-50/50 hover:bg-indigo-100/80 border border-indigo-200/60 text-indigo-900 text-xs font-bold rounded-lg px-3 py-1.5 pr-8 cursor-pointer focus:outline-none focus:ring-2 focus:ring-indigo-500/50 transition-all shadow-sm"
+                                                            >
+                                                                {['basic', 'standard', 'premium'].map(lvl => (
+                                                                    block.levels[lvl].active && <option key={lvl} value={lvl}>{lvl.charAt(0).toUpperCase() + lvl.slice(1)}</option>
+                                                                ))}
+                                                            </select>
+                                                            <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-indigo-600">
+                                                                <Icon name="chevronDown" size={12} />
+                                                            </div>
+                                                        </div>
                                                     )}
                                                 </div>
                                                 <div className="flex items-center gap-1 bg-white/50 px-2 py-1 rounded-md border border-white/40 shadow-sm shrink-0">
-                                                    <span className="text-gray-500 text-xs">$</span>
+                                                    <span className="text-gray-500 text-xs">₹</span>
                                                     <input type="number" value={block.price} onChange={(e) => updateBlock(block.id, 'price', e.target.value)} className="w-24 text-right font-mono font-medium text-sm text-gray-800" placeholder="0.00" />
                                                 </div>
                                             </div>
@@ -472,7 +470,7 @@ Signed: __________________________`;
                         <div className="h-16 bg-white/10 backdrop-blur-xl border-t border-white/10 flex items-center justify-between px-8 text-white shrink-0 shadow-[0_-10px_20px_rgba(0,0,0,0.2)]">
                             <span className="text-sm font-medium opacity-70">Total Project Estimate</span>
                             <div className="flex items-center gap-4">
-                                <span className="text-2xl font-bold font-mono">${totalEstimate.toLocaleString()}</span>
+                                <span className="text-2xl font-bold font-mono">₹{totalEstimate.toLocaleString('en-IN')}</span>
                                 <button onClick={() => setShowInvoice(true)} className="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg text-sm font-bold shadow-lg transition-all flex items-center gap-2">
                                     Proceed <Icon name="chevronRight" size={16} />
                                 </button>
@@ -480,13 +478,12 @@ Signed: __________________________`;
                         </div>
                     </div>
 
-                    {/* RIGHT SIDEBAR (TOOLBOX) */}
+                    {/* RIGHT SIDEBAR */}
                     <div className="w-72 glass-sidebar border-l border-white/10 flex flex-col z-10 shadow-2xl text-white">
                         <div className="p-5 border-b border-white/10">
                             <h3 className="text-xs font-bold text-white/50 uppercase tracking-wider">Toolbox</h3>
                         </div>
                         <div className="flex-1 overflow-y-auto p-4 space-y-4 custom-scrollbar">
-                            {/* Standard Tools */}
                             <div className="space-y-2">
                                 <p className="text-[10px] text-white/40 uppercase font-bold pl-1">Basic Blocks</p>
                                 <button onClick={() => addBlock('service')} className="w-full bg-white/5 hover:bg-white/10 border border-white/5 p-3 rounded-xl flex items-center gap-3 transition-all text-left"><div className="w-8 h-8 rounded bg-indigo-500/20 text-indigo-200 flex items-center justify-center"><Icon name="box" /></div><span className="text-sm font-bold">Custom Service</span></button>
@@ -494,7 +491,6 @@ Signed: __________________________`;
                                 <button onClick={() => addBlock('milestone')} className="w-full bg-white/5 hover:bg-white/10 border border-white/5 p-3 rounded-xl flex items-center gap-3 transition-all text-left"><div className="w-8 h-8 rounded bg-green-500/20 text-green-200 flex items-center justify-center"><Icon name="check" /></div><span className="text-sm font-bold">Milestone</span></button>
                             </div>
 
-                            {/* Predefined Services */}
                             <div className="space-y-2 pt-2 border-t border-white/10">
                                 <div className="flex justify-between items-center pl-1">
                                     <p className="text-[10px] text-white/40 uppercase font-bold">Services</p>
@@ -519,9 +515,7 @@ Signed: __________________________`;
                         </div>
                     </div>
 
-                    {/* --- MODALS --- */}
-
-                    {/* Service Manager Modal */}
+                    {/* MODALS */}
                     {showServiceManager && (
                         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm">
                             <div className="bg-white w-[500px] max-h-[80vh] rounded-xl shadow-2xl overflow-hidden flex flex-col animate-fade-in text-gray-800">
@@ -536,7 +530,6 @@ Signed: __________________________`;
                         </div>
                     )}
 
-                    {/* Settings Modal */}
                     {showSettings && (
                         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
                             <div className="glass-panel bg-white/95 p-6 w-[500px] rounded-2xl shadow-2xl animate-fade-in text-gray-800 max-h-[80vh] overflow-y-auto">
@@ -565,12 +558,10 @@ Signed: __________________________`;
                         </div>
                     )}
 
-                    {/* Invoice/Agreement Modal */}
                     {showInvoice && (
                         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm">
                             <div className="bg-white w-[700px] h-[80vh] rounded-sm shadow-2xl animate-fade-in flex flex-col text-gray-800">
                                 {showAgreement ? (
-                                    // AGREEMENT VIEW
                                     <>
                                         <div className="flex-1 overflow-y-auto p-12 bg-white" id="agreement-print-area">
                                             <div className="mb-8 text-center border-b pb-4">
@@ -580,8 +571,8 @@ Signed: __________________________`;
                                             <div className="prose prose-sm max-w-none font-serif whitespace-pre-wrap leading-relaxed">
                                                 {settings.agreementText
                                                     .replace('[Company Name]', settings.companyName)
-                                                    .replace('[Client Name]', 'Valued Client') // Placeholder
-                                                    .replace('[Total Price]', `$${totalEstimate.toLocaleString()}`)
+                                                    .replace('[Client Name]', 'Valued Client') 
+                                                    .replace('[Total Price]', `₹${totalEstimate.toLocaleString('en-IN')}`)
                                                     .replace('[Date]', new Date().toLocaleDateString())
                                                 }
                                             </div>
@@ -589,7 +580,7 @@ Signed: __________________________`;
                                                 <h3 className="font-bold mb-4">Project Summary</h3>
                                                 <ul className="list-disc pl-5 text-sm space-y-1">
                                                     {activeProject.blocks.map(b => (
-                                                        <li key={b.id}>{b.title} <span className="text-gray-500">({b.notes || b.type})</span> - <b>${parseFloat(b.price).toLocaleString()}</b></li>
+                                                        <li key={b.id}>{b.title} <span className="text-gray-500">({b.notes || b.type})</span> - <b>₹{parseFloat(b.price).toLocaleString('en-IN')}</b></li>
                                                     ))}
                                                 </ul>
                                             </div>
@@ -600,7 +591,6 @@ Signed: __________________________`;
                                         </div>
                                     </>
                                 ) : (
-                                    // ESTIMATE VIEW
                                     <>
                                         <div className="flex-1 overflow-y-auto p-8">
                                             <div className="flex justify-between border-b pb-6 mb-6">
@@ -612,7 +602,7 @@ Signed: __________________________`;
                                             </div>
                                             <table className="w-full text-left text-sm">
                                                 <thead><tr className="border-b text-gray-400 text-xs uppercase"><th className="pb-2">Item</th><th className="pb-2 text-right">Price</th></tr></thead>
-                                                <tbody>{activeProject.blocks.map(b => (<tr key={b.id}><td className="py-3 border-b border-gray-100"><p className="font-bold">{b.title}</p><p className="text-gray-400 text-xs">{b.notes}</p></td><td className="py-3 border-b border-gray-100 text-right font-mono">${parseFloat(b.price||0).toLocaleString()}</td></tr>))}</tbody>
+                                                <tbody>{activeProject.blocks.map(b => (<tr key={b.id}><td className="py-3 border-b border-gray-100"><p className="font-bold">{b.title}</p><p className="text-gray-400 text-xs">{b.notes}</p></td><td className="py-3 border-b border-gray-100 text-right font-mono">₹{parseFloat(b.price||0).toLocaleString('en-IN')}</td></tr>))}</tbody>
                                             </table>
                                         </div>
                                         <div className="bg-gray-50 p-8 border-t border-gray-100 flex justify-between items-center">
@@ -620,7 +610,7 @@ Signed: __________________________`;
                                                 <button onClick={() => setShowInvoice(false)} className="text-gray-400 text-sm hover:text-black mr-4">Close</button>
                                             </div>
                                             <div className="flex items-center gap-6">
-                                                <div className="text-right"><p className="text-xs text-gray-400 font-bold uppercase">Total</p><p className="text-3xl font-bold text-indigo-900">${totalEstimate.toLocaleString()}</p></div>
+                                                <div className="text-right"><p className="text-xs text-gray-400 font-bold uppercase">Total</p><p className="text-3xl font-bold text-indigo-900">₹{totalEstimate.toLocaleString('en-IN')}</p></div>
                                                 <button onClick={() => setShowAgreement(true)} className="bg-indigo-600 text-white px-6 py-3 rounded font-bold shadow hover:bg-indigo-700">Proceed to Agreement</button>
                                             </div>
                                         </div>
@@ -633,8 +623,6 @@ Signed: __________________________`;
             );
         };
 
-        // --- SUB-COMPONENTS ---
-        
         const ServiceCreator = ({ onSave }) => {
             const [name, setName] = useState("");
             const [desc, setDesc] = useState("");
