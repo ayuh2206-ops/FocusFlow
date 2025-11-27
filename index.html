@@ -9,6 +9,10 @@
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js" crossorigin></script>
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
     
+    <!-- PDF Lib for Agreement Generation -->
+    <script src="https://unpkg.com/pdf-lib@1.17.1/dist/pdf-lib.min.js"></script>
+    <script src="https://unpkg.com/downloadjs@1.4.7/download.min.js"></script>
+    
     <!-- Firebase SDKs -->
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
@@ -23,11 +27,11 @@
         
         /* Ultra Glass Theme */
         .glass-panel { 
-            background: rgba(255, 255, 255, 0.1); 
+            background: rgba(255, 255, 255, 0.15); 
             backdrop-filter: blur(15px); 
             -webkit-backdrop-filter: blur(15px); 
             border: 1px solid rgba(255, 255, 255, 0.15); 
-            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.1); 
+            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.2); 
         }
         
         .glass-sidebar {
@@ -102,6 +106,7 @@
 
     <script type="text/babel">
         const { useState, useEffect, useRef } = React;
+        const { PDFDocument, rgb } = PDFLib;
 
         // --- FIREBASE CONFIG ---
         const firebaseConfig = {
@@ -143,7 +148,8 @@
                 grip: <g><circle cx="9" cy="12" r="1" /><circle cx="9" cy="5" r="1" /><circle cx="9" cy="19" r="1" /><circle cx="15" cy="12" r="1" /><circle cx="15" cy="5" r="1" /><circle cx="15" cy="19" r="1" /></g>,
                 upload: <g><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><polyline points="17 8 12 3 7 8" /><line x1="12" y1="3" x2="12" y2="15" /></g>,
                 print: <g><polyline points="6 9 6 2 18 2 18 9" /><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2" /><rect x="6" y="14" width="12" height="8" /></g>,
-                edit: <g><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" /><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" /></g>
+                edit: <g><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" /><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" /></g>,
+                pdf: <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
             };
             return <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>{icons[name]}</svg>;
         };
@@ -268,7 +274,13 @@ Signed: __________________________`;
                 companyName: "Production Studio", 
                 logoUrl: "", 
                 bgImage: "https://images.unsplash.com/photo-1600607686527-6fb886090705?q=80&w=2727&auto=format&fit=crop",
-                agreementText: defaultAgreement
+                agreementText: defaultAgreement,
+                agreementPdfUrl: "",
+                pdfConfig: {
+                    namePage: 0, nameX: 100, nameY: 350,
+                    servicesPage: 4, servicesX: 50, servicesY: 600,
+                    pricePage: 4, priceX: 50, priceY: 500
+                }
             });
             const [projects, setProjects] = useState([]);
             const [predefinedServices, setPredefinedServices] = useState([]);
@@ -281,6 +293,7 @@ Signed: __________________________`;
             const [servicesExpanded, setServicesExpanded] = useState(false);
             const [draggedItemIndex, setDraggedItemIndex] = useState(null);
             const fileInputRef = useRef(null);
+            const pdfInputRef = useRef(null);
 
             const activeProject = projects.find(p => p.id === activeProjectId) || null;
 
@@ -308,7 +321,7 @@ Signed: __________________________`;
             const logout = () => auth.signOut();
 
             const createProject = async () => {
-                const name = prompt("Enter Project Name:");
+                const name = prompt("Enter Project Name (Client Name):");
                 if(name && user) {
                     const docRef = await db.collection('users').doc(user.uid).collection('projects').add({
                         name, blocks: [], createdAt: Date.now(), updatedAt: Date.now()
@@ -327,9 +340,16 @@ Signed: __________________________`;
                 if (!file) return;
                 if (file.size > 500000) return alert("Image too large! Max 500KB.");
                 const reader = new FileReader();
-                reader.onloadend = () => {
-                    updateSettings({ ...settings, logoUrl: reader.result });
-                };
+                reader.onloadend = () => updateSettings({ ...settings, logoUrl: reader.result });
+                reader.readAsDataURL(file);
+            };
+
+            const handlePdfUpload = (event) => {
+                const file = event.target.files[0];
+                if (!file) return;
+                if (file.size > 900000) return alert("PDF too large! Max 900KB. Please compress it.");
+                const reader = new FileReader();
+                reader.onloadend = () => updateSettings({ ...settings, agreementPdfUrl: reader.result });
                 reader.readAsDataURL(file);
             };
 
@@ -351,41 +371,16 @@ Signed: __________________________`;
 
             const addBlock = (type, template = null) => {
                 if(!activeProjectId) return alert("Please create or select a project from the left sidebar first.");
-                
                 const currentBlocks = activeProject ? activeProject.blocks : [];
-
-                let newBlock = {
-                    id: Date.now().toString(),
-                    type, 
-                    title: type === 'service' ? 'New Service' : type === 'material' ? 'New Material' : 'New Milestone',
-                    price: 0, link: '', notes: '', completed: false
-                };
-
+                let newBlock = { id: Date.now().toString(), type, title: type === 'service' ? 'New Service' : type === 'material' ? 'New Material' : 'New Milestone', price: 0, link: '', notes: '', completed: false };
                 if (type === 'service-template' && template) {
-                    newBlock = {
-                        ...newBlock,
-                        title: template.name,
-                        templateId: template.id,
-                        selectedLevel: 'standard',
-                        levels: template.levels,
-                        price: template.levels.standard?.active ? template.levels.standard.price : 0,
-                        notes: template.levels.standard?.active ? template.levels.standard.desc : ''
-                    };
+                    newBlock = { ...newBlock, title: template.name, templateId: template.id, selectedLevel: 'standard', levels: template.levels, price: template.levels.standard?.active ? template.levels.standard.price : 0, notes: template.levels.standard?.active ? template.levels.standard.desc : '' };
                     if (!template.levels.standard?.active) {
-                        if (template.levels.basic?.active) {
-                            newBlock.selectedLevel = 'basic';
-                            newBlock.price = template.levels.basic.price;
-                            newBlock.notes = template.levels.basic.desc;
-                        } else if (template.levels.premium?.active) {
-                            newBlock.selectedLevel = 'premium';
-                            newBlock.price = template.levels.premium.price;
-                            newBlock.notes = template.levels.premium.desc;
-                        }
+                        if (template.levels.basic?.active) { newBlock.selectedLevel = 'basic'; newBlock.price = template.levels.basic.price; newBlock.notes = template.levels.basic.desc; }
+                        else if (template.levels.premium?.active) { newBlock.selectedLevel = 'premium'; newBlock.price = template.levels.premium.price; newBlock.notes = template.levels.premium.desc; }
                     }
                 }
-
-                const updatedBlocks = [...currentBlocks, newBlock];
-                updateProjectBlocks(updatedBlocks);
+                updateProjectBlocks([...currentBlocks, newBlock]);
             };
 
             const updateBlock = (blockId, field, value) => {
@@ -393,13 +388,9 @@ Signed: __________________________`;
                 let updatedBlocks = activeProject.blocks.map(b => {
                     if (b.id !== blockId) return b;
                     let updatedBlock = { ...b, [field]: value };
-                    
                     if (field === 'selectedLevel' && b.type === 'service-template') {
                         const levelData = b.levels[value];
-                        if (levelData) {
-                            updatedBlock.price = levelData.price;
-                            updatedBlock.notes = levelData.desc;
-                        }
+                        if (levelData) { updatedBlock.price = levelData.price; updatedBlock.notes = levelData.desc; }
                     }
                     return updatedBlock;
                 });
@@ -435,17 +426,66 @@ Signed: __________________________`;
             };
 
             const getBlockIcon = (type) => {
-                switch(type) {
-                    case 'service': return 'box';
-                    case 'service-template': return 'box';
-                    case 'material': return 'layers';
-                    case 'milestone': return 'check';
-                    default: return 'box';
-                }
+                switch(type) { case 'service': return 'box'; case 'service-template': return 'box'; case 'material': return 'layers'; case 'milestone': return 'check'; default: return 'box'; }
             };
 
             const totalEstimate = activeProject?.blocks?.reduce((acc, b) => acc + (parseFloat(b.price) || 0), 0) || 0;
-            const printAgreement = () => window.print();
+            
+            const generateAndDownloadPdf = async () => {
+                if (!settings.agreementPdfUrl) {
+                    return alert("Please upload an Agreement PDF template in Settings first.");
+                }
+                try {
+                    const existingPdfBytes = await fetch(settings.agreementPdfUrl).then(res => res.arrayBuffer());
+                    const pdfDoc = await PDFDocument.load(existingPdfBytes);
+                    const pages = pdfDoc.getPages();
+                    
+                    // Configuration for placement (defaults to user request if not set)
+                    const conf = settings.pdfConfig || { namePage: 0, nameX: 100, nameY: 350, servicesPage: 4, servicesX: 50, servicesY: 600, pricePage: 4, priceX: 50, priceY: 500 };
+                    
+                    // Page 1: Client Name
+                    if(pages[conf.namePage]) {
+                        pages[conf.namePage].drawText(activeProject.name || "Client", {
+                            x: parseInt(conf.nameX),
+                            y: parseInt(conf.nameY),
+                            size: 24,
+                            color: rgb(0, 0, 0),
+                        });
+                    }
+
+                    // Page 5: Services and Price
+                    if(pages[conf.servicesPage]) {
+                        // Draw Services List
+                        let yOffset = 0;
+                        activeProject.blocks.forEach(block => {
+                            const text = `• ${block.title} (${block.selectedLevel || 'Standard'}) - ₹${block.price}`;
+                            pages[conf.servicesPage].drawText(text, {
+                                x: parseInt(conf.servicesX),
+                                y: parseInt(conf.servicesY) - yOffset,
+                                size: 12,
+                                color: rgb(0, 0, 0),
+                            });
+                            yOffset += 20;
+                        });
+                    }
+
+                    // Price Page
+                    if(pages[conf.pricePage]) {
+                         pages[conf.pricePage].drawText(`Total Estimate: ₹${totalEstimate.toLocaleString('en-IN')}`, {
+                            x: parseInt(conf.priceX),
+                            y: parseInt(conf.priceY),
+                            size: 18,
+                            color: rgb(0, 0, 0),
+                        });
+                    }
+
+                    const pdfBytes = await pdfDoc.save();
+                    download(pdfBytes, `${activeProject.name}_Agreement.pdf`, "application/pdf");
+                } catch (error) {
+                    console.error("PDF Gen Error:", error);
+                    alert("Failed to generate PDF. Ensure the uploaded template is valid.");
+                }
+            };
 
             if (!user) return (
                 <div className="min-h-screen flex items-center justify-center bg-gray-900 bg-cover bg-center transition-all duration-700">
@@ -615,11 +655,28 @@ Signed: __________________________`;
                                         </div>
                                     </div>
                                     <div><label className="text-xs font-bold uppercase block mb-1">Wallpaper URL</label><input type="text" value={settings.bgImage} onChange={(e) => updateSettings({...settings, bgImage: e.target.value})} className="w-full p-2 border rounded-lg bg-white/50" /></div>
-                                    <div>
-                                        <label className="text-xs font-bold uppercase block mb-1">Agreement Template</label>
-                                        <textarea value={settings.agreementText} onChange={(e) => updateSettings({...settings, agreementText: e.target.value})} className="w-full p-2 border rounded-lg bg-white/50 text-xs font-mono h-32" />
-                                        <p className="text-[10px] text-gray-400 mt-1">Use [Client Name], [Total Price], etc. placeholders.</p>
+                                    
+                                    {/* PDF UPLOAD SECTION */}
+                                    <div className="border-t pt-4">
+                                        <h4 className="text-sm font-bold text-indigo-600 mb-2">Agreement PDF Template</h4>
+                                        <div className="flex gap-2 mb-2">
+                                            <button onClick={() => pdfInputRef.current.click()} className="flex-1 p-2 border border-dashed rounded-lg bg-gray-50 hover:bg-gray-100 text-sm text-gray-500 flex items-center justify-center gap-2"><Icon name="upload" size={14} /> Upload PDF</button>
+                                            <input type="file" ref={pdfInputRef} onChange={handlePdfUpload} accept="application/pdf" className="hidden" />
+                                        </div>
+                                        <p className="text-[10px] text-gray-400 mb-3">Upload your onboarding PDF (Max 1MB). Text will be overlaid.</p>
+                                        
+                                        <label className="text-xs font-bold uppercase block mb-1">Coordinates Config</label>
+                                        <div className="grid grid-cols-3 gap-2 text-xs">
+                                            <input type="number" placeholder="Pg Name" value={settings.pdfConfig?.namePage || 0} onChange={(e) => updateSettings({...settings, pdfConfig: {...settings.pdfConfig, namePage: parseInt(e.target.value)}})} className="border p-1 rounded" />
+                                            <input type="number" placeholder="X Name" value={settings.pdfConfig?.nameX || 100} onChange={(e) => updateSettings({...settings, pdfConfig: {...settings.pdfConfig, nameX: parseInt(e.target.value)}})} className="border p-1 rounded" />
+                                            <input type="number" placeholder="Y Name" value={settings.pdfConfig?.nameY || 350} onChange={(e) => updateSettings({...settings, pdfConfig: {...settings.pdfConfig, nameY: parseInt(e.target.value)}})} className="border p-1 rounded" />
+                                            
+                                            <input type="number" placeholder="Pg Svc" value={settings.pdfConfig?.servicesPage || 4} onChange={(e) => updateSettings({...settings, pdfConfig: {...settings.pdfConfig, servicesPage: parseInt(e.target.value)}})} className="border p-1 rounded" />
+                                            <input type="number" placeholder="X Svc" value={settings.pdfConfig?.servicesX || 50} onChange={(e) => updateSettings({...settings, pdfConfig: {...settings.pdfConfig, servicesX: parseInt(e.target.value)}})} className="border p-1 rounded" />
+                                            <input type="number" placeholder="Y Svc" value={settings.pdfConfig?.servicesY || 600} onChange={(e) => updateSettings({...settings, pdfConfig: {...settings.pdfConfig, servicesY: parseInt(e.target.value)}})} className="border p-1 rounded" />
+                                        </div>
                                     </div>
+
                                     <div className="flex justify-between pt-4 border-t mt-4">
                                         <button onClick={logout} className="text-red-500 text-sm font-medium hover:underline">Sign Out</button>
                                         <button onClick={() => setShowSettings(false)} className="bg-indigo-600 text-white px-4 py-2 rounded-lg text-sm font-bold shadow-lg hover:bg-indigo-700">Done</button>
@@ -635,6 +692,7 @@ Signed: __________________________`;
                                 {showAgreement ? (
                                     <>
                                         <div className="flex-1 overflow-y-auto p-12 bg-white" id="agreement-print-area">
+                                            {/* Regular HTML Preview (Fallback if no PDF) */}
                                             <div className="mb-8 text-center border-b pb-4">
                                                 {settings.logoUrl && <img src={settings.logoUrl} className="h-16 mx-auto mb-2 object-contain" />}
                                                 <h2 className="font-bold text-xl uppercase tracking-widest">{settings.companyName}</h2>
@@ -642,7 +700,7 @@ Signed: __________________________`;
                                             <div className="prose prose-sm max-w-none font-serif whitespace-pre-wrap leading-relaxed">
                                                 {settings.agreementText
                                                     .replace('[Company Name]', settings.companyName)
-                                                    .replace('[Client Name]', 'Valued Client') 
+                                                    .replace('[Client Name]', activeProject.name) 
                                                     .replace('[Total Price]', `₹${totalEstimate.toLocaleString('en-IN')}`)
                                                     .replace('[Date]', new Date().toLocaleDateString())
                                                 }
@@ -658,7 +716,14 @@ Signed: __________________________`;
                                         </div>
                                         <div className="p-4 border-t bg-gray-50 flex justify-between items-center">
                                             <button onClick={() => setShowAgreement(false)} className="text-gray-500 hover:text-black">Back to Estimate</button>
-                                            <button onClick={printAgreement} className="bg-black text-white px-6 py-2 rounded font-bold shadow hover:bg-gray-800 flex items-center gap-2"><Icon name="print" /> Print / PDF</button>
+                                            <div className="flex gap-2">
+                                                <button onClick={printAgreement} className="bg-gray-200 text-gray-800 px-4 py-2 rounded font-bold hover:bg-gray-300 flex items-center gap-2"><Icon name="print" /> Print</button>
+                                                {settings.agreementPdfUrl && (
+                                                    <button onClick={generateAndDownloadPdf} className="bg-indigo-600 text-white px-4 py-2 rounded font-bold hover:bg-indigo-700 flex items-center gap-2">
+                                                        <Icon name="download" /> Download PDF
+                                                    </button>
+                                                )}
+                                            </div>
                                         </div>
                                     </>
                                 ) : (
@@ -704,7 +769,6 @@ Signed: __________________________`;
                 premium: { active: true, price: 0, desc: "Premium features" }
             });
 
-            // Populate form when editingId changes
             useEffect(() => {
                 if (editingId) {
                     const serviceToEdit = services.find(s => s.id === editingId);
@@ -714,14 +778,8 @@ Signed: __________________________`;
                         setLevels(serviceToEdit.levels);
                     }
                 } else {
-                    // Reset form
-                    setName("");
-                    setDesc("");
-                    setLevels({
-                        basic: { active: true, price: 0, desc: "Basic features" },
-                        standard: { active: true, price: 0, desc: "Standard features" },
-                        premium: { active: true, price: 0, desc: "Premium features" }
-                    });
+                    setName(""); setDesc("");
+                    setLevels({ basic: { active: true, price: 0, desc: "Basic features" }, standard: { active: true, price: 0, desc: "Standard features" }, premium: { active: true, price: 0, desc: "Premium features" } });
                 }
             }, [editingId, services]);
 
@@ -737,90 +795,40 @@ Signed: __________________________`;
 
             return (
                 <div className="space-y-8">
-                    {/* FORM SECTION */}
                     <div className="space-y-6">
                         <div className="flex justify-between items-center">
-                            <h4 className="text-sm font-bold text-gray-500 uppercase tracking-wide">
-                                {editingId ? "Edit Service" : "Create New Service"}
-                            </h4>
-                            {editingId && (
-                                <button 
-                                    onClick={() => setEditingId(null)}
-                                    className="text-xs text-red-500 hover:text-red-700 font-medium"
-                                >
-                                    Cancel Edit
-                                </button>
-                            )}
+                            <h4 className="text-sm font-bold text-gray-500 uppercase tracking-wide">{editingId ? "Edit Service" : "Create New Service"}</h4>
+                            {editingId && <button onClick={() => setEditingId(null)} className="text-xs text-red-500 hover:text-red-700 font-medium">Cancel Edit</button>}
                         </div>
-
-                        <div>
-                            <label className="block text-xs font-bold uppercase text-gray-500 mb-1">Service Name</label>
-                            <input type="text" value={name} onChange={e => setName(e.target.value)} className="w-full border p-2 rounded bg-gray-50 focus:bg-white transition-colors" placeholder="e.g. Web Development" />
-                        </div>
-                        <div>
-                            <label className="block text-xs font-bold uppercase text-gray-500 mb-1">Short Description</label>
-                            <input type="text" value={desc} onChange={e => setDesc(e.target.value)} className="w-full border p-2 rounded bg-gray-50 focus:bg-white transition-colors" placeholder="e.g. Full stack websites" />
-                        </div>
-                        
+                        <div><label className="block text-xs font-bold uppercase text-gray-500 mb-1">Service Name</label><input type="text" value={name} onChange={e => setName(e.target.value)} className="w-full border p-2 rounded bg-gray-50 focus:bg-white transition-colors" placeholder="e.g. Web Development" /></div>
+                        <div><label className="block text-xs font-bold uppercase text-gray-500 mb-1">Short Description</label><input type="text" value={desc} onChange={e => setDesc(e.target.value)} className="w-full border p-2 rounded bg-gray-50 focus:bg-white transition-colors" placeholder="e.g. Full stack websites" /></div>
                         <div className="space-y-4">
                             {['basic', 'standard', 'premium'].map(lvl => (
                                 <div key={lvl} className={`border rounded-lg p-3 transition-all ${levels[lvl].active ? 'bg-white border-indigo-200 shadow-sm' : 'bg-gray-50 opacity-50 border-gray-100'}`}>
                                     <div className="flex justify-between items-center mb-2">
-                                        <label className="flex items-center gap-2 cursor-pointer select-none">
-                                            <input type="checkbox" checked={levels[lvl].active} onChange={e => handleLevelChange(lvl, 'active', e.target.checked)} className="rounded text-indigo-600 focus:ring-indigo-500" />
-                                            <span className="font-bold capitalize text-gray-700">{lvl}</span>
-                                        </label>
+                                        <label className="flex items-center gap-2 cursor-pointer select-none"><input type="checkbox" checked={levels[lvl].active} onChange={e => handleLevelChange(lvl, 'active', e.target.checked)} className="rounded text-indigo-600 focus:ring-indigo-500" /><span className="font-bold capitalize text-gray-700">{lvl}</span></label>
                                     </div>
                                     {levels[lvl].active && (
                                         <div className="grid grid-cols-3 gap-2 animate-fade-in">
-                                            <div className="col-span-1">
-                                                <input type="number" placeholder="Price" value={levels[lvl].price} onChange={e => handleLevelChange(lvl, 'price', e.target.value)} className="w-full border p-1.5 rounded text-sm focus:border-indigo-300" />
-                                            </div>
-                                            <div className="col-span-2">
-                                                <input type="text" placeholder="Description" value={levels[lvl].desc} onChange={e => handleLevelChange(lvl, 'desc', e.target.value)} className="w-full border p-1.5 rounded text-sm focus:border-indigo-300" />
-                                            </div>
+                                            <div className="col-span-1"><input type="number" placeholder="Price" value={levels[lvl].price} onChange={e => handleLevelChange(lvl, 'price', e.target.value)} className="w-full border p-1.5 rounded text-sm focus:border-indigo-300" /></div>
+                                            <div className="col-span-2"><input type="text" placeholder="Description" value={levels[lvl].desc} onChange={e => handleLevelChange(lvl, 'desc', e.target.value)} className="w-full border p-1.5 rounded text-sm focus:border-indigo-300" /></div>
                                         </div>
                                     )}
                                 </div>
                             ))}
                         </div>
-
-                        <button 
-                            onClick={handleSubmit} 
-                            className={`w-full py-2.5 rounded-lg font-bold shadow-md transition-all transform hover:scale-[1.02] active:scale-[0.98] ${editingId ? 'bg-green-600 hover:bg-green-700 text-white' : 'bg-indigo-600 hover:bg-indigo-700 text-white'}`}
-                        >
-                            {editingId ? "Update Service" : "Add Service to Library"}
-                        </button>
+                        <button onClick={handleSubmit} className={`w-full py-2.5 rounded-lg font-bold shadow-md transition-all transform hover:scale-[1.02] active:scale-[0.98] ${editingId ? 'bg-green-600 hover:bg-green-700 text-white' : 'bg-indigo-600 hover:bg-indigo-700 text-white'}`}>{editingId ? "Update Service" : "Add Service to Library"}</button>
                     </div>
-
-                    {/* LIBRARY LIST SECTION */}
                     <div className="border-t pt-6">
                         <h4 className="text-sm font-bold text-gray-500 uppercase tracking-wide mb-4">Service Library</h4>
-                        {services.length === 0 ? (
-                            <p className="text-sm text-gray-400 text-center py-4 italic">No services created yet.</p>
-                        ) : (
+                        {services.length === 0 ? <p className="text-sm text-gray-400 text-center py-4 italic">No services created yet.</p> : (
                             <div className="space-y-3">
                                 {services.map(svc => (
                                     <div key={svc.id} className={`flex items-center justify-between p-3 rounded-lg border transition-all ${editingId === svc.id ? 'border-indigo-500 bg-indigo-50' : 'border-gray-200 hover:border-gray-300 bg-white'}`}>
-                                        <div>
-                                            <p className="font-bold text-sm text-gray-800">{svc.name}</p>
-                                            <p className="text-xs text-gray-500 truncate max-w-[200px]">{svc.description || "No description"}</p>
-                                        </div>
+                                        <div><p className="font-bold text-sm text-gray-800">{svc.name}</p><p className="text-xs text-gray-500 truncate max-w-[200px]">{svc.description || "No description"}</p></div>
                                         <div className="flex gap-2">
-                                            <button 
-                                                onClick={() => setEditingId(svc.id)}
-                                                className="p-1.5 text-gray-400 hover:text-indigo-600 hover:bg-indigo-100 rounded transition-colors"
-                                                title="Edit"
-                                            >
-                                                <Icon name="edit" size={14} />
-                                            </button>
-                                            <button 
-                                                onClick={() => onDelete(svc.id)}
-                                                className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-100 rounded transition-colors"
-                                                title="Delete"
-                                            >
-                                                <Icon name="trash" size={14} />
-                                            </button>
+                                            <button onClick={() => setEditingId(svc.id)} className="p-1.5 text-gray-400 hover:text-indigo-600 hover:bg-indigo-100 rounded transition-colors" title="Edit"><Icon name="edit" size={14} /></button>
+                                            <button onClick={() => onDelete(svc.id)} className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-100 rounded transition-colors" title="Delete"><Icon name="trash" size={14} /></button>
                                         </div>
                                     </div>
                                 ))}
