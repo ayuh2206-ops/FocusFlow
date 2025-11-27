@@ -23,11 +23,11 @@
         
         /* Ultra Glass Theme */
         .glass-panel { 
-            background: rgba(255, 255, 255, 0.1); 
-            backdrop-filter: blur(15px); 
-            -webkit-backdrop-filter: blur(15px); 
-            border: 1px solid rgba(255, 255, 255, 0.15); 
-            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.1); 
+            background: rgba(255, 255, 255, 0.15); 
+            backdrop-filter: blur(25px); 
+            -webkit-backdrop-filter: blur(25px); 
+            border: 1px solid rgba(255, 255, 255, 0.2); 
+            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.2); 
         }
         
         .glass-sidebar {
@@ -65,6 +65,16 @@
         .block-type-service { border-left-color: #4f46e5; } 
         .block-type-material { border-left-color: #ea580c; } 
         .block-type-milestone { border-left-color: #16a34a; } 
+
+        /* Custom Dropdown */
+        .custom-dropdown-menu {
+            animation: scaleIn 0.15s ease-out forwards;
+            transform-origin: top right;
+        }
+        @keyframes scaleIn {
+            from { opacity: 0; transform: scale(0.95); }
+            to { opacity: 1; transform: scale(1); }
+        }
 
         /* Scrollbar */
         .custom-scrollbar::-webkit-scrollbar { width: 8px; }
@@ -154,6 +164,102 @@ Services will be delivered according to the milestones defined in the project sc
 
 Date: [Date]
 Signed: __________________________`;
+
+        // --- SUB-COMPONENTS ---
+
+        const CustomSelect = ({ value, options, onChange }) => {
+            const [isOpen, setIsOpen] = useState(false);
+            const ref = useRef(null);
+
+            useEffect(() => {
+                const handleClickOutside = (event) => {
+                    if (ref.current && !ref.current.contains(event.target)) setIsOpen(false);
+                };
+                document.addEventListener('mousedown', handleClickOutside);
+                return () => document.removeEventListener('mousedown', handleClickOutside);
+            }, []);
+
+            return (
+                <div className="relative" ref={ref}>
+                    <button 
+                        onClick={() => setIsOpen(!isOpen)} 
+                        className="flex items-center gap-2 bg-indigo-100 hover:bg-indigo-200 text-indigo-800 text-xs font-bold px-3 py-1.5 rounded-full transition-colors"
+                    >
+                        {value.charAt(0).toUpperCase() + value.slice(1)}
+                        <Icon name="chevronDown" size={12} />
+                    </button>
+                    {isOpen && (
+                        <div className="absolute top-full right-0 mt-1 w-32 bg-white/90 backdrop-blur-xl border border-white/20 rounded-xl shadow-2xl z-50 overflow-hidden custom-dropdown-menu">
+                            {options.map((opt) => (
+                                <button
+                                    key={opt.value}
+                                    onClick={() => { onChange(opt.value); setIsOpen(false); }}
+                                    className={`w-full text-left px-4 py-2 text-xs font-medium hover:bg-indigo-50 flex items-center justify-between ${value === opt.value ? 'text-indigo-600 bg-indigo-50/50' : 'text-gray-700'}`}
+                                >
+                                    {opt.label}
+                                    {value === opt.value && <Icon name="check" size={12} />}
+                                </button>
+                            ))}
+                        </div>
+                    )}
+                </div>
+            );
+        };
+
+        const BlockItem = ({ block, index, updateBlock, deleteBlock, handleDragStart, handleDragEnter, handleDragEnd, draggedItemIndex, getBlockIcon }) => {
+            return (
+                <div 
+                    draggable={true}
+                    onDragStart={() => handleDragStart(index)}
+                    onDragEnter={(e) => handleDragEnter(e, index)}
+                    onDragEnd={handleDragEnd}
+                    onDragOver={(e) => e.preventDefault()}
+                    className={`block-card p-4 shadow-lg flex gap-4 items-start group animate-fade-in block-type-${block.type === 'service-template' ? 'service' : block.type} rounded-xl ${draggedItemIndex === index ? 'dragging' : ''}`}
+                >
+                    <div className="pt-1 text-gray-400 cursor-grab hover:text-indigo-500"><Icon name="grip" size={16} /></div>
+                    <div className="pt-1 text-gray-600"><Icon name={getBlockIcon(block.type)} size={18} /></div>
+                    
+                    <div className="flex-1 space-y-2">
+                        <div className="flex justify-between items-start gap-4">
+                            <div className="flex-1">
+                                <div className="flex items-center gap-3">
+                                    <input type="text" value={block.title} onChange={(e) => updateBlock(block.id, 'title', e.target.value)} className="font-bold text-gray-900 text-lg bg-transparent p-0 border-none focus:ring-0 flex-1" />
+                                    
+                                    {/* Premium Dropdown for Service Templates */}
+                                    {block.type === 'service-template' && block.levels && (
+                                        <CustomSelect 
+                                            value={block.selectedLevel || 'standard'}
+                                            onChange={(val) => updateBlock(block.id, 'selectedLevel', val)}
+                                            options={['basic', 'standard', 'premium']
+                                                .filter(lvl => block.levels[lvl]?.active)
+                                                .map(lvl => ({ value: lvl, label: lvl.charAt(0).toUpperCase() + lvl.slice(1) }))}
+                                        />
+                                    )}
+                                </div>
+                            </div>
+                            <div className="flex items-center gap-1 bg-white/50 px-2 py-1 rounded-md border border-white/40 shadow-sm shrink-0">
+                                <span className="text-gray-500 text-xs">₹</span>
+                                <input type="number" value={block.price} onChange={(e) => updateBlock(block.id, 'price', e.target.value)} className="w-24 text-right font-mono font-medium text-sm text-gray-800" placeholder="0.00" />
+                            </div>
+                        </div>
+                        <div className="grid grid-cols-2 gap-4">
+                            <div className="flex items-center gap-2 bg-white/40 p-1.5 rounded-lg border border-white/20 focus-within:border-indigo-300 transition-colors">
+                                <Icon name="link" size={12} className="text-gray-400" />
+                                <input type="text" placeholder="Reference link..." value={block.link} onChange={(e) => updateBlock(block.id, 'link', e.target.value)} className="text-xs w-full text-blue-700" />
+                            </div>
+                            <div className="flex items-center gap-2 bg-white/40 p-1.5 rounded-lg border border-white/20 focus-within:border-indigo-300 transition-colors">
+                                <Icon name="fileText" size={12} className="text-gray-400" />
+                                <input type="text" placeholder="Notes..." value={block.notes} onChange={(e) => updateBlock(block.id, 'notes', e.target.value)} className="text-xs w-full text-gray-700" />
+                            </div>
+                        </div>
+                    </div>
+
+                    <div className="flex flex-col gap-2">
+                        <button onClick={() => deleteBlock(block.id)} className="p-1.5 rounded-md bg-white/50 text-gray-400 hover:text-red-600 hover:bg-red-50 shadow-sm transition-colors"><Icon name="trash" size={16} /></button>
+                    </div>
+                </div>
+            );
+        };
 
         const App = () => {
             const [user, setUser] = useState(null);
@@ -408,60 +514,18 @@ Signed: __________________________`;
                                 )}
 
                                 {activeProject && activeProject.blocks && activeProject.blocks.map((block, index) => (
-                                    <div 
+                                    <BlockItem 
                                         key={block.id}
-                                        draggable={true}
-                                        onDragStart={() => handleDragStart(index)}
-                                        onDragEnter={(e) => handleDragEnter(e, index)}
-                                        onDragEnd={handleDragEnd}
-                                        onDragOver={(e) => e.preventDefault()}
-                                        className={`block-card p-4 shadow-lg flex gap-4 items-start group animate-fade-in block-type-${block.type === 'service-template' ? 'service' : block.type} rounded-xl ${draggedItemIndex === index ? 'dragging' : ''}`}
-                                    >
-                                        <div className="pt-1 text-gray-400 cursor-grab hover:text-indigo-500"><Icon name="grip" size={16} /></div>
-                                        <div className="pt-1 text-gray-600"><Icon name={getBlockIcon(block.type)} size={18} /></div>
-                                        
-                                        <div className="flex-1 space-y-2">
-                                            <div className="flex justify-between items-start gap-4">
-                                                <div className="flex-1">
-                                                    <input type="text" value={block.title} onChange={(e) => updateBlock(block.id, 'title', e.target.value)} className="font-bold text-gray-900 text-lg w-full bg-transparent p-0 border-none focus:ring-0" />
-                                                    {block.type === 'service-template' && block.levels && (
-                                                        <div className="relative mt-2 inline-block">
-                                                            <select 
-                                                                value={block.selectedLevel || 'standard'} 
-                                                                onChange={(e) => updateBlock(block.id, 'selectedLevel', e.target.value)}
-                                                                className="appearance-none bg-indigo-50/50 hover:bg-indigo-100/80 border border-indigo-200/60 text-indigo-900 text-xs font-bold rounded-lg px-3 py-1.5 pr-8 cursor-pointer focus:outline-none focus:ring-2 focus:ring-indigo-500/50 transition-all shadow-sm"
-                                                            >
-                                                                {['basic', 'standard', 'premium'].map(lvl => (
-                                                                    block.levels[lvl].active && <option key={lvl} value={lvl}>{lvl.charAt(0).toUpperCase() + lvl.slice(1)}</option>
-                                                                ))}
-                                                            </select>
-                                                            <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-indigo-600">
-                                                                <Icon name="chevronDown" size={12} />
-                                                            </div>
-                                                        </div>
-                                                    )}
-                                                </div>
-                                                <div className="flex items-center gap-1 bg-white/50 px-2 py-1 rounded-md border border-white/40 shadow-sm shrink-0">
-                                                    <span className="text-gray-500 text-xs">₹</span>
-                                                    <input type="number" value={block.price} onChange={(e) => updateBlock(block.id, 'price', e.target.value)} className="w-24 text-right font-mono font-medium text-sm text-gray-800" placeholder="0.00" />
-                                                </div>
-                                            </div>
-                                            <div className="grid grid-cols-2 gap-4">
-                                                <div className="flex items-center gap-2 bg-white/40 p-1.5 rounded-lg border border-white/20 focus-within:border-indigo-300 transition-colors">
-                                                    <Icon name="link" size={12} className="text-gray-400" />
-                                                    <input type="text" placeholder="Reference link..." value={block.link} onChange={(e) => updateBlock(block.id, 'link', e.target.value)} className="text-xs w-full text-blue-700" />
-                                                </div>
-                                                <div className="flex items-center gap-2 bg-white/40 p-1.5 rounded-lg border border-white/20 focus-within:border-indigo-300 transition-colors">
-                                                    <Icon name="fileText" size={12} className="text-gray-400" />
-                                                    <input type="text" placeholder="Notes..." value={block.notes} onChange={(e) => updateBlock(block.id, 'notes', e.target.value)} className="text-xs w-full text-gray-700" />
-                                                </div>
-                                            </div>
-                                        </div>
-
-                                        <div className="flex flex-col gap-2">
-                                            <button onClick={() => deleteBlock(block.id)} className="p-1.5 rounded-md bg-white/50 text-gray-400 hover:text-red-600 hover:bg-red-50 shadow-sm transition-colors"><Icon name="trash" size={16} /></button>
-                                        </div>
-                                    </div>
+                                        block={block}
+                                        index={index}
+                                        updateBlock={updateBlock}
+                                        deleteBlock={deleteBlock}
+                                        handleDragStart={handleDragStart}
+                                        handleDragEnter={handleDragEnter}
+                                        handleDragEnd={handleDragEnd}
+                                        draggedItemIndex={draggedItemIndex}
+                                        getBlockIcon={getBlockIcon}
+                                    />
                                 ))}
                             </div>
                         </div>
