@@ -237,7 +237,7 @@ Signed: __________________________`;
             );
         };
 
-        // --- BLOCK COMPONENT (With Production Mode Support) ---
+        // --- BLOCK COMPONENT ---
         const BlockItem = ({ block, index, updateBlock, deleteBlock, handleDragStart, handleDragEnter, handleDragEnd, draggedItemIndex, getBlockIcon, isProduction, isEditing }) => {
             const [newSubTask, setNewSubTask] = useState("");
             const [draggedSubtaskIndex, setDraggedSubtaskIndex] = useState(null);
@@ -473,7 +473,6 @@ Signed: __________________________`;
             const [activeProjectId, setActiveProjectId] = useState(null);
             const [deliveryDate, setDeliveryDate] = useState("");
             
-            // App States
             const [showSettings, setShowSettings] = useState(false);
             const [showInvoice, setShowInvoice] = useState(false);
             const [showServiceManager, setShowServiceManager] = useState(false);
@@ -547,7 +546,6 @@ Signed: __________________________`;
                 if (!file) return;
                 if (file.size > 500000) { 
                     alert("Image too large! Max 500KB.");
-                    // Reset file input so user can try again
                     if(fileInputRef.current) fileInputRef.current.value = "";
                     return;
                 }
@@ -974,8 +972,6 @@ Signed: __________________________`;
                                     </div>
                                     <div><label className="text-xs font-bold uppercase block mb-1">Wallpaper URL</label><input type="text" value={settings.bgImage} onChange={(e) => updateSettings({...settings, bgImage: e.target.value})} className="w-full p-2 border rounded-lg bg-white/50" /></div>
                                     
-                                    {/* PDF UPLOAD SECTION REMOVED: Using Auto-Generate */}
-                                    
                                     <div className="flex justify-between pt-4 border-t mt-4">
                                         <button onClick={logout} className="text-red-500 text-sm font-medium hover:underline">Sign Out</button>
                                         <button onClick={() => setShowSettings(false)} className="bg-indigo-600 text-white px-4 py-2 rounded-lg text-sm font-bold shadow-lg hover:bg-indigo-700">Done</button>
@@ -1048,23 +1044,35 @@ Signed: __________________________`;
                 standard: { active: true, price: 0, desc: "Standard features" },
                 premium: { active: true, price: 0, desc: "Premium features" }
             });
+            
+            const formTopRef = useRef(null);
 
             useEffect(() => {
-                if (editingId) {
-                    const serviceToEdit = services.find(s => s.id === editingId);
-                    if (serviceToEdit) {
-                        setName(serviceToEdit.name);
-                        setDesc(serviceToEdit.description);
-                        setLevels(serviceToEdit.levels);
-                    }
-                } else {
+                // Form reset logic kept for safety, but main population happens via handleEditClick
+                if (!editingId) {
                     setName(""); setDesc("");
                     setLevels({ basic: { active: true, price: 0, desc: "Basic features" }, standard: { active: true, price: 0, desc: "Standard features" }, premium: { active: true, price: 0, desc: "Premium features" } });
                 }
-            }, [editingId, services]);
+            }, [editingId]);
 
             const handleLevelChange = (lvl, field, val) => {
                 setLevels(prev => ({...prev, [lvl]: { ...prev[lvl], [field]: val }}));
+            };
+
+            const handleEditClick = (service) => {
+                setEditingId(service.id);
+                setName(service.name);
+                setDesc(service.description);
+                // Safely merge in case of missing level data
+                const defaultLevels = {
+                    basic: { active: true, price: 0, desc: "Basic features" },
+                    standard: { active: true, price: 0, desc: "Standard features" },
+                    premium: { active: true, price: 0, desc: "Premium features" }
+                };
+                setLevels({ ...defaultLevels, ...service.levels });
+                
+                // Auto-scroll to top
+                formTopRef.current?.scrollIntoView({ behavior: 'smooth' });
             };
 
             const handleSubmit = () => {
@@ -1074,7 +1082,7 @@ Signed: __________________________`;
             };
 
             return (
-                <div className="space-y-8">
+                <div ref={formTopRef} className="space-y-8">
                     <div className="space-y-6">
                         <div className="flex justify-between items-center">
                             <h4 className="text-sm font-bold text-gray-500 uppercase tracking-wide">{editingId ? "Edit Service" : "Create New Service"}</h4>
@@ -1107,7 +1115,7 @@ Signed: __________________________`;
                                     <div key={svc.id} className={`flex items-center justify-between p-3 rounded-lg border transition-all ${editingId === svc.id ? 'border-indigo-500 bg-indigo-50' : 'border-gray-200 hover:border-gray-300 bg-white'}`}>
                                         <div><p className="font-bold text-sm text-gray-800">{svc.name}</p><p className="text-xs text-gray-500 truncate max-w-[200px]">{svc.description || "No description"}</p></div>
                                         <div className="flex gap-2">
-                                            <button onClick={() => setEditingId(svc.id)} className="p-1.5 text-gray-400 hover:text-indigo-600 hover:bg-indigo-100 rounded transition-colors" title="Edit"><Icon name="edit" size={14} /></button>
+                                            <button onClick={() => handleEditClick(svc)} className="p-1.5 text-gray-400 hover:text-indigo-600 hover:bg-indigo-100 rounded transition-colors" title="Edit"><Icon name="edit" size={14} /></button>
                                             <button onClick={() => onDelete(svc.id)} className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-100 rounded transition-colors" title="Delete"><Icon name="trash" size={14} /></button>
                                         </div>
                                     </div>
