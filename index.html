@@ -573,12 +573,11 @@ Signed: __________________________`;
 
             const deletePredefinedService = async (id) => {
                 if (!user || !id) return;
-                if(confirm("Delete this service template?")) {
-                    try {
-                        await db.collection('users').doc(user.uid).collection('services').doc(id).delete();
-                    } catch(e) {
-                        alert("Delete error: " + e.message);
-                    }
+                // Removed confirmation for smoother workflow
+                try {
+                    await db.collection('users').doc(user.uid).collection('services').doc(id).delete();
+                } catch(e) {
+                    console.error("Delete error: " + e.message);
                 }
             };
 
@@ -1117,7 +1116,13 @@ Signed: __________________________`;
                                         <div><p className="font-bold text-sm text-gray-800">{svc.name}</p><p className="text-xs text-gray-500 truncate max-w-[200px]">{svc.description || "No description"}</p></div>
                                         <div className="flex gap-2">
                                             <button onClick={() => handleEditClick(svc)} className="p-1.5 text-gray-400 hover:text-indigo-600 hover:bg-indigo-100 rounded transition-colors" title="Edit"><Icon name="edit" size={14} /></button>
-                                            <button onClick={() => onDelete(svc.id)} className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-100 rounded transition-colors" title="Delete"><Icon name="trash" size={14} /></button>
+                                            <button 
+                                                onClick={(e) => { e.stopPropagation(); onDelete(svc.id); }} 
+                                                className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-100 rounded transition-colors" 
+                                                title="Delete"
+                                            >
+                                                <div className="pointer-events-none"><Icon name="trash" size={14} /></div>
+                                            </button>
                                         </div>
                                     </div>
                                 ))}
