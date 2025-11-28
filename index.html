@@ -244,7 +244,6 @@ Signed: __________________________`;
             const [editingSubtaskId, setEditingSubtaskId] = useState(null);
             const [editingSubtaskText, setEditingSubtaskText] = useState("");
 
-            // Subtask Handlers
             const addSubTask = () => {
                 if(!newSubTask.trim()) return;
                 const subtasks = [...(block.subtasks || []), { id: Date.now(), text: newSubTask.trim(), completed: false }];
@@ -276,7 +275,6 @@ Signed: __________________________`;
                 }
             };
 
-            // Subtask Drag & Drop
             const handleSubtaskDragStart = (idx) => setDraggedSubtaskIndex(idx);
             const handleSubtaskDragEnter = (e, idx) => {
                 e.preventDefault();
@@ -377,7 +375,6 @@ Signed: __________________________`;
                         )}
                     </div>
 
-                    {/* PRODUCTION MODE: TO-DO LIST */}
                     {isProduction && (
                         <div className="border-t border-gray-200/40 pt-4 mt-2 pl-10">
                             <p className="text-[10px] font-bold text-gray-400 uppercase mb-3 tracking-wide">Production Tasks</p>
@@ -561,18 +558,27 @@ Signed: __________________________`;
             };
 
             const savePredefinedService = async (serviceData) => {
-                if(user) {
-                    if(serviceData.id) {
-                        await db.collection('users').doc(user.uid).collection('services').doc(serviceData.id).update(serviceData);
+                if (!user) return;
+                const { id, ...data } = serviceData;
+                try {
+                    if (id) {
+                        await db.collection('users').doc(user.uid).collection('services').doc(id).update(data);
                     } else {
-                        await db.collection('users').doc(user.uid).collection('services').add(serviceData);
+                        await db.collection('users').doc(user.uid).collection('services').add(data);
                     }
+                } catch (e) {
+                    alert("Error saving service: " + e.message);
                 }
             };
 
             const deletePredefinedService = async (id) => {
+                if (!user || !id) return;
                 if(confirm("Delete this service template?")) {
-                    if(user) await db.collection('users').doc(user.uid).collection('services').doc(id).delete();
+                    try {
+                        await db.collection('users').doc(user.uid).collection('services').doc(id).delete();
+                    } catch(e) {
+                        alert("Delete error: " + e.message);
+                    }
                 }
             };
 
@@ -620,20 +626,15 @@ Signed: __________________________`;
             };
 
             const startProduction = async () => {
-                // 1. Generate PDF
                 await generateAndDownloadPdf();
-                
-                // 2. Update Status to Production
                 if(user && activeProjectId) {
                     await db.collection('users').doc(user.uid).collection('projects').doc(activeProjectId).update({ status: 'production' });
-                    // Local update will happen via onSnapshot
                 }
                 setShowInvoice(false);
             };
 
             const toggleEditMode = () => {
                 if (isEditing) {
-                    // Save Changes (Logic already handled by direct updates, just switching state)
                     setIsEditing(false);
                 } else {
                     setIsEditing(true);
