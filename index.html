@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>NexusCore | Enterprise Command Center</title>
+    <title>FocusFlow | Enterprise Command Center</title>
     
     <!-- React & Babel -->
     <script src="https://unpkg.com/react@18/umd/react.development.js" crossorigin></script>
@@ -427,7 +427,7 @@
         // ═══════════════════════════════════════════════════════════════
         const generateSampleData = () => ({
             company: {
-                name: "NexusCore Inc.",
+                name: "FocusFlow Inc.",
                 logo: "",
                 industry: "Technology",
                 founded: "2024",
@@ -636,7 +636,7 @@
                         </div>
                         {!collapsed && (
                             <div className="animate-fade-in">
-                                <h1 className="font-display font-bold text-lg gradient-text">NexusCore</h1>
+                                <h1 className="font-display font-bold text-lg gradient-text">FocusFlow</h1>
                                 <p className="text-[10px] text-surface-500 uppercase tracking-widest">Enterprise Suite</p>
                             </div>
                         )}
@@ -2063,7 +2063,7 @@
                             <Icon name="zap" size={40} className="text-white" />
                         </div>
                         
-                        <h1 className="font-display text-3xl font-bold mb-2 gradient-text">NexusCore</h1>
+                        <h1 className="font-display text-3xl font-bold mb-2 gradient-text">FocusFlow</h1>
                         <p className="text-surface-400 mb-8">Enterprise Command Center</p>
                         
                         <button 
@@ -2104,7 +2104,7 @@
                     
                     if (u) {
                         // Load user data from Firestore
-                        db.collection('users').doc(u.uid).collection('nexuscore').doc('data').get()
+                        db.collection('users').doc(u.uid).collection('FocusFlow').doc('data').get()
                             .then(doc => {
                                 if (doc.exists) {
                                     setData(doc.data());
@@ -2118,7 +2118,7 @@
             useEffect(() => {
                 if (user && isFirebaseEnabled) {
                     const timeoutId = setTimeout(() => {
-                        db.collection('users').doc(user.uid).collection('nexuscore').doc('data').set(data);
+                        db.collection('users').doc(user.uid).collection('FocusFlow').doc('data').set(data);
                     }, 1000);
                     return () => clearTimeout(timeoutId);
                 }
